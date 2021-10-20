@@ -17,7 +17,7 @@ pub struct Parser {
 impl Parser {
 	pub fn new(tokens: TokenIter) -> Self {
 		// println!("{:#?}", tokens);
-		Parser { tokens }
+		Parser { tokens: tokens.filter(|token| token.token_type != TokenType::Comment).collect::<Vec<Token>>().into_iter().peekable() }
 	}
 
 	pub fn expect(&mut self, expected_type: TokenType) -> Result<()> {

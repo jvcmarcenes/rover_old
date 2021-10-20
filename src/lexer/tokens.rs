@@ -18,17 +18,10 @@ pub enum Symbol {
 	DoubleEquals, ExclamEquals, OpenAngEquals, CloseAngEquals,
 	DoubleAmper, DoubleBar, Exclam,
 	SingleQuote, DoubleQuotes,
-	Hashtag, HashtagOpenBracket
+	Hashtag, OpenParHashtag, HashtagOpenBracket
 }
 
 impl Symbol {
-	// const VALID_SYMBOLS: [char; 25] = [
-	// 	'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
-	// ];
-
-	// pub fn is_valid(c: char) -> bool {
-	// 	Self::VALID_SYMBOLS.contains(&c)
-	// }
 
 	pub fn get(s: &str) -> Option<Symbol> {
 		let symbol = match s {
@@ -61,6 +54,7 @@ impl Symbol {
 			"'" => Symbol::SingleQuote,
 			"\"" => Symbol::DoubleQuotes,
 			"#" => Symbol::Hashtag,
+			"(#" => Symbol::OpenParHashtag,
 			"#{" => Symbol::HashtagOpenBracket,
 			_ => return None,
 		};

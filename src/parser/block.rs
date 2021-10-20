@@ -45,7 +45,6 @@ impl Parser {
 
 	pub fn parse_block(&mut self) -> Result<Block> {
 		self.skip_new_lines();
-		
 		self.expect_symbol(Symbol::OpenBracket)?;
 
 		let mut statements: Vec<Statement> = Vec::new();

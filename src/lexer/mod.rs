@@ -1,6 +1,7 @@
 
 pub mod tokens;
 
+use std::ops::Add;
 use std::{fs, io, iter::Peekable, vec::IntoIter};
 // use log::trace;
 
@@ -123,6 +124,18 @@ impl Iterator for Lexer {
 				match symbol {
 					Symbol::Hashtag => {
 						self.get_next_char_while(&mut String::new(), |c| c != '\n');
+						Token::create(TokenType::Comment, pos)
+					}
+					Symbol::OpenParHashtag => {
+						loop {
+							if let (Some(c1), Some(c2)) = (self.raw_data.next(), self.raw_data.peek()) {
+								let s = c1.to_string().add(&c2.to_string());
+								if s == "#)" {
+									self.raw_data.next();
+									break;
+								}
+							} else { return Some(Error::create("Multiline comment not closed".to_string(), pos)) }
+						}
 						Token::create(TokenType::Comment, pos)
 					}
 					_ => Token::create(TokenType::Symbol(symbol), pos)

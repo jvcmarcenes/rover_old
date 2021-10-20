@@ -26,7 +26,7 @@ impl Parser {
 			};
 			if res.is_ok() { self.expect(TokenType::EOL)?; }
 			res
-		} else { Error::create(String::from("Reached EOF"), SourcePos { line: 0, column: 0 }) }
+		} else { Error::create(String::from("Reached EOF"), SourcePos::new(0, 0)) }
 	}
 
 	fn parse_write_statement(&mut self) -> Result<Statement> {
@@ -51,7 +51,7 @@ impl Parser {
 		let mut else_block: Block = Block::default();
 
 		self.skip_new_lines();
-		
+
 		if let Some(token) = self.tokens.peek() {
 			if token.token_type == TokenType::Keyword(Keyword::Else) {
 				self.tokens.next();
