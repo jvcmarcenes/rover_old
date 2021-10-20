@@ -1,26 +1,43 @@
 
+use crate::lexer::*;
+use crate::SourcePos;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
 	Num(f32),
 	Str(String),
-	// Bool(bool),
+	Bool(bool),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Symbol {
-	LeftPar, RightPar, LeftBracket, RightBracket, LeftSqr, RightSqr, LeftAng, RightAng,
-	Period, Comma, SemiColon, Colon,
+	OpenPar, ClosePar, OpenBracket, CloseBracket, OpenSqr, CloseSqr, OpenAng, CloseAng,
+	Period, Comma, SemiColon,
 	Equals, PlusEquals, MinusEquals,
 	Plus, Minus, Asterisk, Slash, Percent,
-	DoubleEquals, ExclamEquals, LeftAngEquals, RightAngEquals,
+	DoubleEquals, ExclamEquals, OpenAngEquals, CloseAngEquals,
 	DoubleAmper, DoubleBar, Exclam,
 	SingleQuote, DoubleQuotes,
-	Hashtag, HashtagLeftBracket
+	Hashtag, HashtagOpenBracket
 }
 
-#[derive(Debug, Clone, PartialEq)]
+const UNARY_OPERATORS: &[Symbol] = &[Symbol::Minus, Symbol::Exclam];
+pub fn is_unary_symbol(s: &Symbol) -> bool {
+	UNARY_OPERATORS.contains(s)
+}
+
+const BINARY_OPERATORS: &[Symbol] = &[
+	Symbol::Plus, Symbol::Minus, Symbol::Asterisk, Symbol::Slash, Symbol::Percent, Symbol::DoubleAmper, Symbol::DoubleBar,
+	Symbol::DoubleEquals, Symbol::ExclamEquals, Symbol::OpenAng, Symbol::CloseAng, Symbol::OpenAngEquals, Symbol::CloseAngEquals
+];
+pub fn is_binary_symbol(s: &Symbol) -> bool {
+	BINARY_OPERATORS.contains(s)
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Keyword {
-	Writeline
+	True, False,
+	Writeline, Read
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -33,43 +50,74 @@ pub enum TokenType {
 	EOL,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SourcePos {
-	pub line: i32,
-	pub column: i32,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
 	pub token_type: TokenType,
-	pub src: SourcePos
+	pub pos: SourcePos
 }
 
 impl Token {
-	pub fn new(token_type: TokenType, src: SourcePos) -> Self {
-		Token { token_type, src }
+	pub fn new(token_type: TokenType, pos: SourcePos) -> Self {
+		Token { token_type, pos }
+	}
+
+	pub fn create(token_type: TokenType, pos: SourcePos) -> Result<Token> {
+		Ok(Self::new(token_type, pos))
 	}
 }
 
 pub fn get_keyword(s: &str) -> Option<Keyword> {
-	match s {
-		"writeline" => Some(Keyword::Writeline),
-		_ => None
-	}
+	let keyword = match s {
+		"true" => Keyword::True,
+		"false" => Keyword::False,
+		"writeline" => Keyword::Writeline,
+		"read" => Keyword::Read,
+		_ => return None,
+	};
+	Some(keyword)
 }
 
-const valid_symbols: &[char] = &[
+const VALID_SYMBOLS: &[char] = &[
 	'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
 ];
 
 pub fn is_valid_symbol(c: char) -> bool {
-	valid_symbols.contains(&c)
+	VALID_SYMBOLS.contains(&c)
 }
 
 pub fn get_symbol(s: &str) -> Option<Symbol> {
-	match s {
-		"#" => Some(Symbol::Hashtag),
-		"\"" => Some(Symbol::DoubleQuotes),
-		_ => None,
-	}
+	let symbol = match s {
+		"(" => Symbol::OpenPar,
+		")" => Symbol::ClosePar,
+		"{" => Symbol::OpenBracket,
+		"}" => Symbol::CloseBracket,
+		"[" => Symbol::OpenSqr,
+		"]" => Symbol::CloseSqr,
+		"<" => Symbol::OpenAng,
+		">" => Symbol::CloseAng,
+		"." => Symbol::Period,
+		"," => Symbol::Comma,
+		";" => Symbol::SemiColon,
+		"=" => Symbol::Equals,
+		"+=" => Symbol::PlusEquals,
+		"-=" => Symbol::MinusEquals,
+		"+" => Symbol::Plus,
+		"-" => Symbol::Minus,
+		"*" => Symbol::Asterisk,
+		"/" => Symbol::Slash,
+		"%" => Symbol::Percent,
+		"==" => Symbol::DoubleEquals,
+		"!=" => Symbol::ExclamEquals,
+		"<=" => Symbol::OpenAngEquals,
+		">=" => Symbol::CloseAngEquals,
+		"&&" => Symbol::DoubleAmper,
+		"||" => Symbol::DoubleBar,
+		"!" => Symbol::Exclam,
+		"'" => Symbol::SingleQuote,
+		"\"" => Symbol::DoubleQuotes,
+		"#" => Symbol::Hashtag,
+		"#{" => Symbol::HashtagOpenBracket,
+		_ => return None,
+	};
+	Some(symbol)
 }

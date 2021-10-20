@@ -1,5 +1,8 @@
-"Hello"
-213
-# Comment
-writeline
-variable_2
+
+writeline "Hello World!"
+
+writeline 0.0
+
+x = 42
+
+writeline x
