@@ -49,6 +49,9 @@ impl Parser {
 		let condition = self.parse_expression()?;
 		let then_block = self.parse_block()?;
 		let mut else_block: Block = Block::default();
+
+		self.skip_new_lines();
+		
 		if let Some(token) = self.tokens.peek() {
 			if token.token_type == TokenType::Keyword(Keyword::Else) {
 				self.tokens.next();
