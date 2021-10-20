@@ -22,13 +22,13 @@ pub enum Symbol {
 }
 
 impl Symbol {
-	const VALID_SYMBOLS: [char; 25] = [
-		'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
-	];
+	// const VALID_SYMBOLS: [char; 25] = [
+	// 	'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
+	// ];
 
-	pub fn is_valid(c: char) -> bool {
-		Self::VALID_SYMBOLS.contains(&c)
-	}
+	// pub fn is_valid(c: char) -> bool {
+	// 	Self::VALID_SYMBOLS.contains(&c)
+	// }
 
 	pub fn get(s: &str) -> Option<Symbol> {
 		let symbol = match s {

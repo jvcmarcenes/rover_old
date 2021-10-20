@@ -6,13 +6,21 @@ use crate::{*, lexer::tokens::Literal, parser::expression::*};
 
 use super::{Interpreter, value::Value};
 
+fn unwrap_or_error(res: std::result::Result<Value, String>, pos: SourcePos) -> Result<Value> {
+	match res {
+		Ok(v) => Ok(v),
+		Err(e) => Error::create(e, pos),
+	}
+}
+
 impl Interpreter {
 
 	pub fn evaluate(&mut self, expr: Box<Expression>) -> Result<Value> {
 		match expr.expr_type {
-			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, left_expr, right_expr),
 			ExpressionType::Literal { value } => self.evaluate_literal(value),
 			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(name, expr.pos),
+			ExpressionType::Group { expr } => self.evaluate(expr),
+			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, left_expr, right_expr),
 			ExpressionType::Read => self.evaluate_read(),
 			_ => Error::create(String::from("Error trying to parse expression"), expr.pos)
 		}
@@ -35,18 +43,23 @@ impl Interpreter {
 	}
 
 	fn evaluate_bin_operation(&mut self, op: BinaryOperator, left_expr: Box<Expression>, right_expr: Box<Expression>) -> Result<Value> {
-		let left_value = self.evaluate(left_expr.clone())?;
-		let right_value = self.evaluate(right_expr.clone())?;
-		let res = match op {
-			BinaryOperator::Add => {
-				match left_value + right_value {
-					Ok(v) => v,
-					Err(e) => return Error::create(e, right_expr.pos),
-				}
-			}
+		let lhs = self.evaluate(left_expr.clone())?;
+		let rhs = self.evaluate(right_expr.clone())?;
+		let pos = right_expr.pos;
+		match op {
+			BinaryOperator::Add => unwrap_or_error(lhs + rhs, pos),
+			BinaryOperator::Sub => unwrap_or_error(lhs - rhs, pos),
+			BinaryOperator::Mul => unwrap_or_error(lhs * rhs, pos),
+			BinaryOperator::Div => unwrap_or_error(lhs / rhs, pos),
+			BinaryOperator::Mod => unwrap_or_error(lhs % rhs, pos),
+			BinaryOperator::Equals    => Ok(Value::Bool(lhs == rhs)),
+			BinaryOperator::NotEquals => Ok(Value::Bool(lhs != rhs)),
+			BinaryOperator::Greater     => Ok(Value::Bool(lhs > rhs)),
+			BinaryOperator::GreaterOrEq => Ok(Value::Bool(lhs >= rhs)),
+			BinaryOperator::Lesser      => Ok(Value::Bool(lhs < rhs)),
+			BinaryOperator::LesserOrEq  => Ok(Value::Bool(lhs <= rhs)),
 			_ => return Error::create(format!("Invalid operation"), right_expr.pos),
-		};
-		Ok(res)
+		}
 	}
 
 	fn evaluate_read(&mut self) -> Result<Value> {

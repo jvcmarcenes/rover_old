@@ -26,10 +26,14 @@ impl Interpreter {
 	pub fn run(&mut self) -> Result<()> {
 		loop {
 			if let Some(statement) = self.program.statements.next() {
-				match statement {
+				let res = match statement {
 					Statement::Write { expr } => self.execute_write(*expr.clone()),
 					Statement::Writeline { expr } => self.execute_writeline(*expr.clone()),
 					Statement::Assignment { name, expr } => self.execute_assigment(name, *expr.clone())
+				};
+				match res {
+					Ok(_) => continue,
+					Err(e) => return Err(e),
 				}
 			} else {
 				return Ok(())
@@ -37,19 +41,22 @@ impl Interpreter {
 		}
 	}
 
-	fn execute_write(&mut self, expr: Expression) {
-		let value = self.evaluate(Box::new(expr)).unwrap();
+	fn execute_write(&mut self, expr: Expression) -> Result<()> {
+		let value = self.evaluate(Box::new(expr))?;
 		print!("{}", value);
+		Ok(())
 	}
 
-	fn execute_writeline(&mut self, expr: Expression) {
-		let value = self.evaluate(Box::new(expr)).unwrap();
+	fn execute_writeline(&mut self, expr: Expression) -> Result<()> {
+		let value = self.evaluate(Box::new(expr))?;
 		println!("{}", value);
+		Ok(())
 	}
 
-	fn execute_assigment(&mut self, name: String, expr: Expression) {
+	fn execute_assigment(&mut self, name: String, expr: Expression) -> Result<()> {
 		let value = self.evaluate(Box::new(expr)).unwrap();
 		self.symbol_table.insert(name, value);
+		Ok(())
 	}
 
 }

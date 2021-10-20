@@ -112,10 +112,12 @@ impl Iterator for Lexer {
 			let mut raw = first_char.to_string();
 			loop {
 				if let Some(peek) = self.raw_data.peek() {
-					if Symbol::is_valid(*peek) {
-						raw.push(*peek);
-						self.next_data();
-					} else { break }
+					raw.push(*peek);
+					if Symbol::get(&raw).is_none() {
+						raw.pop();
+						break;
+					}
+					self.raw_data.next();
 				} else { break }
 			}
 			token = if let Some(symbol) = Symbol::get(&raw) {

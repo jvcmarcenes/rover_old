@@ -99,6 +99,7 @@ impl Expression {
 impl Parser {
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
+		// println!("{:?}", left_expr);
 		self.parse_binary_r_expression(0, left_expr)		
 	}
 
@@ -159,36 +160,34 @@ impl Parser {
 		loop {
 			match self.tokens.peek() {
 				Some(token) => {
-					let op = get_bin_op_for_token(&token);
-					match op {
+					match get_bin_op_for_token(&token) {
 						Ok(op) => {
-							let token = self.tokens.next().unwrap();
 							let current_prec = get_precedence(&op);
-							if current_prec < prec {
-								return Ok(left_expr)
-							}
+							if current_prec < prec { return Ok(left_expr) }
+
+							let token = self.tokens.next().unwrap();
 							let mut right_expr = self.parse_expression_no_binary()?;
+
 							match self.tokens.peek() {
 								Some(next_token) => {
 									match get_bin_op_for_token(&next_token) {
 										Ok(next_op) => {
 											let next_prec = get_precedence(&next_op);
-											if current_prec < next_prec {
-												self.tokens.next();
+											if next_prec > current_prec {
 												right_expr = self.parse_binary_r_expression(current_prec + 1, right_expr)?;
 											}
 										}
 										Err(_) => ()
 									}
 								}
-								_ => ()
+								None => ()
 							}
-							left_expr = Expression::new(ExpressionType::BinaryOperation { op, left_expr: Box::new(left_expr), right_expr: Box::new(right_expr) }, token.pos)
+							left_expr = Expression::new(ExpressionType::BinaryOperation { op, left_expr: Box::new(left_expr), right_expr: Box::new(right_expr) }, token.pos);
 						}
 						Err(_) => return Ok(left_expr)
 					}
 				}
-				_ => return Error::create(String::from("Expected a binary operator, reached EOF"), SourcePos { line: 0, column: 0 }),
+				None => return Ok(left_expr),
 			}
 		}
 	}

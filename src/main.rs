@@ -69,6 +69,8 @@ fn main() {
 
 	let program = get_ast(path);
 
+	// println!("{:#?}", program);
+
 	let result = Interpreter::new(program).run();
 	
 	unwrap_or_exit!(result, "Execution", path);

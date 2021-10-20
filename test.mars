@@ -1,6 +1,3 @@
 
-writeline "What's your name?"
 
-name = read
-
-writeline "Hello " + name + "!"
+writeline 
