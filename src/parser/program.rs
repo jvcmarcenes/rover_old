@@ -19,6 +19,7 @@ impl Parser {
 			match self.tokens.peek() {
 				None => break,
 				Some(Token { token_type: TokenType::EOL, pos: _ }) => {
+					// println!("Skiping EOl");
 					self.tokens.next();
 					continue;
 				}

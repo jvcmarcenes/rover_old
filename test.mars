@@ -1,8 +1,6 @@
 
-writeline "Hello World!"
+writeline "What's your name?"
 
-writeline 0.0
+name = read
 
-x = 42
-
-writeline x
+writeline "Hello " + name + "!"

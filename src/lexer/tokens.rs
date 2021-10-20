@@ -21,6 +21,53 @@ pub enum Symbol {
 	Hashtag, HashtagOpenBracket
 }
 
+impl Symbol {
+	const VALID_SYMBOLS: [char; 25] = [
+		'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
+	];
+
+	pub fn is_valid(c: char) -> bool {
+		Self::VALID_SYMBOLS.contains(&c)
+	}
+
+	pub fn get(s: &str) -> Option<Symbol> {
+		let symbol = match s {
+			"(" => Symbol::OpenPar,
+			")" => Symbol::ClosePar,
+			"{" => Symbol::OpenBracket,
+			"}" => Symbol::CloseBracket,
+			"[" => Symbol::OpenSqr,
+			"]" => Symbol::CloseSqr,
+			"<" => Symbol::OpenAng,
+			">" => Symbol::CloseAng,
+			"." => Symbol::Period,
+			"," => Symbol::Comma,
+			";" => Symbol::SemiColon,
+			"=" => Symbol::Equals,
+			"+=" => Symbol::PlusEquals,
+			"-=" => Symbol::MinusEquals,
+			"+" => Symbol::Plus,
+			"-" => Symbol::Minus,
+			"*" => Symbol::Asterisk,
+			"/" => Symbol::Slash,
+			"%" => Symbol::Percent,
+			"==" => Symbol::DoubleEquals,
+			"!=" => Symbol::ExclamEquals,
+			"<=" => Symbol::OpenAngEquals,
+			">=" => Symbol::CloseAngEquals,
+			"&&" => Symbol::DoubleAmper,
+			"||" => Symbol::DoubleBar,
+			"!" => Symbol::Exclam,
+			"'" => Symbol::SingleQuote,
+			"\"" => Symbol::DoubleQuotes,
+			"#" => Symbol::Hashtag,
+			"#{" => Symbol::HashtagOpenBracket,
+			_ => return None,
+		};
+		Some(symbol)
+	}
+}
+
 const UNARY_OPERATORS: &[Symbol] = &[Symbol::Minus, Symbol::Exclam];
 pub fn is_unary_symbol(s: &Symbol) -> bool {
 	UNARY_OPERATORS.contains(s)
@@ -37,7 +84,21 @@ pub fn is_binary_symbol(s: &Symbol) -> bool {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Keyword {
 	True, False,
-	Writeline, Read
+	Write, Writeline, Read
+}
+
+impl Keyword {
+	pub fn get(s: &str) -> Option<Self> {
+		let keyword = match s {
+			"true" => Keyword::True,
+			"false" => Keyword::False,
+			"write" => Keyword::Write,
+			"writeline" => Keyword::Writeline,
+			"read" => Keyword::Read,
+			_ => return None,
+		};
+		Some(keyword)
+	}
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,60 +125,4 @@ impl Token {
 	pub fn create(token_type: TokenType, pos: SourcePos) -> Result<Token> {
 		Ok(Self::new(token_type, pos))
 	}
-}
-
-pub fn get_keyword(s: &str) -> Option<Keyword> {
-	let keyword = match s {
-		"true" => Keyword::True,
-		"false" => Keyword::False,
-		"writeline" => Keyword::Writeline,
-		"read" => Keyword::Read,
-		_ => return None,
-	};
-	Some(keyword)
-}
-
-const VALID_SYMBOLS: &[char] = &[
-	'#', '!', '%', '+', '-', '/', '*', '=', '{', '}', '(', ')', '[', ']', ':', '.', ',', ';', '&', '|', '\'', '"', '<', '>', '?'
-];
-
-pub fn is_valid_symbol(c: char) -> bool {
-	VALID_SYMBOLS.contains(&c)
-}
-
-pub fn get_symbol(s: &str) -> Option<Symbol> {
-	let symbol = match s {
-		"(" => Symbol::OpenPar,
-		")" => Symbol::ClosePar,
-		"{" => Symbol::OpenBracket,
-		"}" => Symbol::CloseBracket,
-		"[" => Symbol::OpenSqr,
-		"]" => Symbol::CloseSqr,
-		"<" => Symbol::OpenAng,
-		">" => Symbol::CloseAng,
-		"." => Symbol::Period,
-		"," => Symbol::Comma,
-		";" => Symbol::SemiColon,
-		"=" => Symbol::Equals,
-		"+=" => Symbol::PlusEquals,
-		"-=" => Symbol::MinusEquals,
-		"+" => Symbol::Plus,
-		"-" => Symbol::Minus,
-		"*" => Symbol::Asterisk,
-		"/" => Symbol::Slash,
-		"%" => Symbol::Percent,
-		"==" => Symbol::DoubleEquals,
-		"!=" => Symbol::ExclamEquals,
-		"<=" => Symbol::OpenAngEquals,
-		">=" => Symbol::CloseAngEquals,
-		"&&" => Symbol::DoubleAmper,
-		"||" => Symbol::DoubleBar,
-		"!" => Symbol::Exclam,
-		"'" => Symbol::SingleQuote,
-		"\"" => Symbol::DoubleQuotes,
-		"#" => Symbol::Hashtag,
-		"#{" => Symbol::HashtagOpenBracket,
-		_ => return None,
-	};
-	Some(symbol)
 }

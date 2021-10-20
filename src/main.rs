@@ -12,7 +12,7 @@ use crate::{lexer::*, parser::*, interpreter::*};
 use structopt::StructOpt;
 use std::{fs, path::PathBuf, process};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct SourcePos {
 	pub line: i32,
 	pub column: i32,

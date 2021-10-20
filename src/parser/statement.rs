@@ -4,6 +4,7 @@ use crate::parser::{*, expression::*};
 
 #[derive(Debug)]
 pub enum Statement {
+	Write { expr: Box<Expression> },
 	Writeline { expr: Box<Expression> },
 	Assignment { name: String, expr: Box<Expression> },
 }
@@ -14,6 +15,7 @@ impl Parser {
 			let res = match token.token_type {
 				TokenType::Identifier(name) => self.parse_assigment_statement(name),
 				TokenType::Keyword(keyword) => match keyword {
+					Keyword::Write => self.parse_write_statement(),
 					Keyword::Writeline => self.parse_writeline_statement(),
 					_ => Error::create(format!("Expected statement found {:?}", token.token_type), token.pos)
 				}
@@ -29,6 +31,11 @@ impl Parser {
 				_ => res
 			}
 		} else { Error::create(String::from("Reached EOF"), SourcePos { line: 0, column: 0 }) }
+	}
+
+	fn parse_write_statement(&mut self) -> Result<Statement> {
+		let expr = self.parse_expression()?;
+		Ok(Statement::Write { expr: Box::new(expr) })
 	}
 
 	fn parse_writeline_statement(&mut self) -> Result<Statement> {

@@ -86,7 +86,7 @@ impl Iterator for Lexer {
 		if Self::is_identifier(first_char) && !first_char.is_numeric() {
 			let mut name = first_char.to_string();
 			self.get_next_char_while(&mut name, Self::is_identifier);
-			token = if let Some(keyword) = get_keyword(&name) {
+			token = if let Some(keyword) = Keyword::get(&name) {
 				let t = match keyword {
 					Keyword::True => TokenType::Literal(Literal::Bool(true)),
 					Keyword::False => TokenType::Literal(Literal::Bool(false)),
@@ -112,13 +112,13 @@ impl Iterator for Lexer {
 			let mut raw = first_char.to_string();
 			loop {
 				if let Some(peek) = self.raw_data.peek() {
-					if is_valid_symbol(*peek) {
+					if Symbol::is_valid(*peek) {
 						raw.push(*peek);
 						self.next_data();
 					} else { break }
 				} else { break }
 			}
-			token = if let Some(symbol) = get_symbol(&raw) {
+			token = if let Some(symbol) = Symbol::get(&raw) {
 				match symbol {
 					Symbol::Hashtag => {
 						self.get_next_char_while(&mut String::new(), |c| c != '\n');

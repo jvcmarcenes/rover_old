@@ -82,6 +82,7 @@ pub enum ExpressionType {
 		op: UnaryOperator,
 		expr: Box<Expression>
 	},
+	Read,
 }
 
 #[derive(Debug, Clone)]
@@ -107,6 +108,12 @@ impl Parser {
 				TokenType::Literal(lit) => self.parse_literal_expression(lit),
 				TokenType::Identifier(name) => {
 					self.parse_variable_reference_expression(name)	
+				}
+				TokenType::Keyword(keyword) => {
+					match keyword {
+						Keyword::Read => Ok(ExpressionType::Read),
+						_ => Error::create(format!("Expected expression, found {:?}", keyword), token.pos)
+					}
 				}
 				TokenType::Symbol(Symbol::OpenPar) => self.parse_grouped_expression(),
 				TokenType::Symbol(symbol) if is_unary_symbol(&symbol) => self.parse_unary_expression(&symbol, token.pos),
@@ -150,22 +157,28 @@ impl Parser {
 		let mut left_expr = left_expr;
 
 		loop {
-			match self.tokens.next() {
+			match self.tokens.peek() {
 				Some(token) => {
 					let op = get_bin_op_for_token(&token);
 					match op {
 						Ok(op) => {
+							let token = self.tokens.next().unwrap();
 							let current_prec = get_precedence(&op);
 							if current_prec < prec {
 								return Ok(left_expr)
 							}
 							let mut right_expr = self.parse_expression_no_binary()?;
-							match self.tokens.next() {
+							match self.tokens.peek() {
 								Some(next_token) => {
-									let next_op = get_bin_op_for_token(&next_token)?;
-									let next_prec = get_precedence(&next_op);
-									if current_prec < next_prec {
-										right_expr = self.parse_binary_r_expression(current_prec + 1, right_expr)?;
+									match get_bin_op_for_token(&next_token) {
+										Ok(next_op) => {
+											let next_prec = get_precedence(&next_op);
+											if current_prec < next_prec {
+												self.tokens.next();
+												right_expr = self.parse_binary_r_expression(current_prec + 1, right_expr)?;
+											}
+										}
+										Err(_) => ()
 									}
 								}
 								_ => ()
