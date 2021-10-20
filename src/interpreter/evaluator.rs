@@ -1,5 +1,5 @@
 
-use std::fmt::Display;
+use std::fmt::{Display};
 use text_io::read;
 
 use crate::{*, lexer::tokens::Literal, parser::expression::*};
@@ -21,8 +21,8 @@ impl Interpreter {
 			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(name, expr.pos),
 			ExpressionType::Group { expr } => self.evaluate(expr),
 			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, left_expr, right_expr),
+			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, expr),
 			ExpressionType::Read => self.evaluate_read(),
-			_ => Error::create(String::from("Error trying to parse expression"), expr.pos)
 		}
 	}
 
@@ -39,6 +39,20 @@ impl Interpreter {
 		match self.symbol_table.get(&name) {
 			Some(v) => Ok(v.clone()),
 			None => Error::create(format!("variable {} is not defined", name), pos),
+		}
+	}
+
+	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: Box<Expression>) -> Result<Value> {
+		let val = self.evaluate(expr.clone())?;
+		match op {
+			UnaryOperator::NumNegation => {
+				if let Value::Num(n) = val { Ok(Value::Num(-n)) }
+				else { Error::create("Invalid operator for type".to_string(), expr.pos) }
+			},
+			UnaryOperator::BoolNegation => {
+				if let Value::Bool(b) = val { Ok(Value::Bool(!b)) }
+				else { Error::create("Invalid operator for type".to_string(), expr.pos) }
+			}
 		}
 	}
 
