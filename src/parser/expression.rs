@@ -82,7 +82,7 @@ pub enum ExpressionType {
 		op: UnaryOperator,
 		expr: Box<Expression>
 	},
-	Read,
+	Read, ReadNum
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +113,7 @@ impl Parser {
 				TokenType::Keyword(keyword) => {
 					match keyword {
 						Keyword::Read => Ok(ExpressionType::Read),
+						Keyword::ReadNum => Ok(ExpressionType::ReadNum),
 						_ => Error::create(format!("Expected expression, found {:?}", keyword), token.pos)
 					}
 				}

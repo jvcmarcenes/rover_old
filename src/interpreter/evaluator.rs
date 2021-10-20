@@ -1,6 +1,6 @@
 
 use std::fmt::{Display};
-use text_io::read;
+use text_io::try_read;
 
 use crate::{*, lexer::tokens::Literal, parser::expression::*};
 
@@ -22,7 +22,8 @@ impl Interpreter {
 			ExpressionType::Group { expr } => self.evaluate(expr),
 			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, left_expr, right_expr),
 			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, expr),
-			ExpressionType::Read => self.evaluate_read(),
+			ExpressionType::Read => self.evaluate_read(expr.pos),
+			ExpressionType::ReadNum => self.evaluate_readnum(expr.pos),
 		}
 	}
 
@@ -77,9 +78,20 @@ impl Interpreter {
 		}
 	}
 
-	fn evaluate_read(&mut self) -> Result<Value> {
-		let line: String = read!("{}\r\n"); // I believe this won't work on other platforms
-		Ok(Value::Str(line))
+	fn evaluate_read(&mut self, pos: SourcePos) -> Result<Value> {
+		let str_res: std::result::Result<String, text_io::Error> = try_read!("{}\r\n"); // I believe this won't work on other platforms
+		match str_res {
+			Ok(str) => Ok(Value::Str(str)),
+			Err(_) => Error::create("Invalid console input".to_string(), pos),
+		}
+	}
+
+	fn evaluate_readnum(&mut self, pos: SourcePos) -> Result<Value> {
+		let num_res: std::result::Result<f32, text_io::Error> = try_read!();
+		match num_res {
+			Ok(num) => Ok(Value::Num(num)),
+			Err(_) => Error::create("Invalid console input, expected a number".to_string(), pos),
+		}
 	}
 
 }

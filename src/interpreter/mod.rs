@@ -54,7 +54,7 @@ impl Interpreter {
 	}
 
 	fn execute_assigment(&mut self, name: String, expr: Expression) -> Result<()> {
-		let value = self.evaluate(Box::new(expr)).unwrap();
+		let value = self.evaluate(Box::new(expr))?;
 		self.symbol_table.insert(name, value);
 		Ok(())
 	}

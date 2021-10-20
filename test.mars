@@ -1,2 +1,6 @@
 
- 
+writeline "Enter a number"
+
+x = readnum
+
+writeline "x² = " + (x * x)
