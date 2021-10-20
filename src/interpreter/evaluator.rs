@@ -58,7 +58,8 @@ impl Interpreter {
 			BinaryOperator::GreaterOrEq => Ok(Value::Bool(lhs >= rhs)),
 			BinaryOperator::Lesser      => Ok(Value::Bool(lhs < rhs)),
 			BinaryOperator::LesserOrEq  => Ok(Value::Bool(lhs <= rhs)),
-			_ => return Error::create(format!("Invalid operation"), right_expr.pos),
+			BinaryOperator::And => unwrap_or_error(Value::bool_op(|a, b| a && b, lhs, rhs), pos),
+			BinaryOperator::Or  => unwrap_or_error(Value::bool_op(|a, b| a || b, lhs, rhs), pos),
 		}
 	}
 

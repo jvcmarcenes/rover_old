@@ -1,5 +1,5 @@
 
-use std::{fmt::Display, ops::{Add, Div, Mul, Rem, Sub}, primitive, result::Result};
+use std::{fmt::{Display}, ops::{Add, Div, Mul, Rem, Sub}, primitive, result::Result};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
@@ -9,9 +9,17 @@ pub enum Value {
 }
 
 impl Value {
-	fn math_op(f: fn(f32, f32) -> f32, lhs: Self, rhs: Self) -> Result<Value, String> {
+	pub fn math_op(f: fn(f32, f32) -> f32, lhs: Self, rhs: Self) -> Result<Value, String> {
 		if let (Self::Num(ln), Self::Num(rn)) = (lhs, rhs) {
 			Ok(Value::Num(f(ln, rn)))
+		} else {
+			Err("Invalid operator for types".to_string())
+		}
+	}
+	
+	pub fn bool_op(f: fn(bool, bool) -> bool, lhs: Self, rhs: Self) -> Result<Value, String> {
+		if let (Self::Bool(lb), Self::Bool(rb)) = (lhs, rhs) {
+			Ok(Value::Bool(f(lb, rb)))
 		} else {
 			Err("Invalid operator for types".to_string())
 		}
