@@ -1,21 +1,23 @@
 
-#![allow(dead_code, unused_imports, unused_mut)]
-
 mod lexer;
 mod parser;
 mod interpreter;
 
-use parser::program::Program;
+use parser::block::*;
 
 use crate::{lexer::*, parser::*, interpreter::*};
 
 use structopt::StructOpt;
-use std::{fs, path::PathBuf, process};
+use std::{path::PathBuf, process};
 
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct SourcePos {
 	pub line: i32,
 	pub column: i32,
+}
+
+impl SourcePos {
+	fn new (line: i32, column: i32) -> Self { Self { line, column } }
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +49,7 @@ macro_rules! unwrap_or_exit {
 	};
 }
 
-fn get_ast(path: &str) -> Program {
+fn get_ast(path: &str) -> Block {
 	let lexer = Lexer::from_file(path).unwrap();
 	let tokens = lexer.map(|token| unwrap_or_exit!(token, "Lexing", path)).collect::<Vec<_>>();
 

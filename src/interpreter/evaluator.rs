@@ -1,5 +1,4 @@
 
-use std::fmt::{Display};
 use text_io::try_read;
 
 use crate::{*, lexer::tokens::Literal, parser::expression::*};
@@ -15,13 +14,13 @@ fn unwrap_or_error(res: std::result::Result<Value, String>, pos: SourcePos) -> R
 
 impl Interpreter {
 
-	pub fn evaluate(&mut self, expr: Box<Expression>) -> Result<Value> {
-		match expr.expr_type {
+	pub fn evaluate(&mut self, expr: &Box<Expression>) -> Result<Value> {
+		match expr.to_owned().expr_type {
 			ExpressionType::Literal { value } => self.evaluate_literal(value),
 			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(name, expr.pos),
-			ExpressionType::Group { expr } => self.evaluate(expr),
-			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, left_expr, right_expr),
-			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, expr),
+			ExpressionType::Group { expr } => self.evaluate(&expr),
+			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, &left_expr, &right_expr),
+			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, &expr),
 			ExpressionType::Read => self.evaluate_read(expr.pos),
 			ExpressionType::ReadNum => self.evaluate_readnum(expr.pos),
 		}
@@ -43,8 +42,8 @@ impl Interpreter {
 		}
 	}
 
-	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: Box<Expression>) -> Result<Value> {
-		let val = self.evaluate(expr.clone())?;
+	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: &Box<Expression>) -> Result<Value> {
+		let val = self.evaluate(expr)?;
 		match op {
 			UnaryOperator::NumNegation => {
 				if let Value::Num(n) = val { Ok(Value::Num(-n)) }
@@ -57,9 +56,9 @@ impl Interpreter {
 		}
 	}
 
-	fn evaluate_bin_operation(&mut self, op: BinaryOperator, left_expr: Box<Expression>, right_expr: Box<Expression>) -> Result<Value> {
-		let lhs = self.evaluate(left_expr.clone())?;
-		let rhs = self.evaluate(right_expr.clone())?;
+	fn evaluate_bin_operation(&mut self, op: BinaryOperator, left_expr: &Box<Expression>, right_expr: &Box<Expression>) -> Result<Value> {
+		let lhs = self.evaluate(left_expr)?;
+		let rhs = self.evaluate(right_expr)?;
 		let pos = right_expr.pos;
 		match op {
 			BinaryOperator::Add => unwrap_or_error(lhs + rhs, pos),

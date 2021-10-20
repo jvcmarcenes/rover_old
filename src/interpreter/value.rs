@@ -1,5 +1,7 @@
 
-use std::{fmt::{Display}, ops::{Add, Div, Mul, Rem, Sub}, primitive, result::Result};
+use std::{fmt::Display, ops::{Add, Div, Mul, Rem, Sub}, result::Result};
+
+use crate::{SourcePos, Error};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
@@ -9,6 +11,17 @@ pub enum Value {
 }
 
 impl Value {
+	pub fn to_bool(&self, pos: SourcePos) -> crate::Result<bool> {
+		if let Self::Bool(b) = self { Ok(*b) }
+		else { Error::create("Expected a boolean value".to_string(), pos) }
+	}
+
+	#[allow(dead_code)]
+	pub fn to_num(&self, pos: SourcePos) -> crate::Result<f32> {
+		if let Self::Num(n) = self { Ok(*n) }
+		else { Error::create("Expected a numeric value".to_string(), pos) }
+	}
+
 	pub fn math_op(f: fn(f32, f32) -> f32, lhs: Self, rhs: Self) -> Result<Value, String> {
 		if let (Self::Num(ln), Self::Num(rn)) = (lhs, rhs) {
 			Ok(Value::Num(f(ln, rn)))
@@ -42,7 +55,12 @@ impl Add for Value {
 	fn add(self, rhs: Self) -> Self::Output {
 		match self {
 			Self::Str(_) => Ok(Self::Str(format!("{}{}", self, rhs))),
-			Self::Num(_) => Self::math_op(|a, b| a + b, self, rhs),
+			Self::Num(_) => {
+				match rhs {
+					Self::Str(_) => Ok(Self::Str(format!("{}{}", self, rhs))),
+					_ => Self::math_op(|a, b| a + b, self, rhs)
+				}
+			}
 			Self::Bool(_) => Err(String::from("Invalid operator for boolean type")),
 		}
 	}

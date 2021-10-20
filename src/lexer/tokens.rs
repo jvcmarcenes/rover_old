@@ -84,7 +84,8 @@ pub fn is_binary_symbol(s: &Symbol) -> bool {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Keyword {
 	True, False,
-	Write, Writeline, Read, ReadNum
+	Write, Writeline, Read, ReadNum,
+	If, Else,
 }
 
 impl Keyword {
@@ -96,6 +97,8 @@ impl Keyword {
 			"writeline" => Keyword::Writeline,
 			"read" => Keyword::Read,
 			"readnum" => Keyword::ReadNum,
+			"if" => Keyword::If,
+			"else" => Keyword::Else,
 			_ => return None,
 		};
 		Some(keyword)

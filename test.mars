@@ -1,6 +1,12 @@
 
 writeline "Enter a number"
 
-x = readnum
+num = readnum
 
-writeline "x² = " + (x * x)
+if num % 3 == 0 {
+	writeline num + " mod 3 = 0"
+} else if num % 3 == 1 {
+	writeline num + " mod 3 = 1"
+} else {
+	writeline num + " mod 3 = 2"
+}

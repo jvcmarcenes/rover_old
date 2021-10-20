@@ -1,7 +1,7 @@
 
 pub mod expression;
 pub mod statement;
-pub mod program;
+pub mod block;
 
 use crate::*;
 use crate::lexer::tokens::*;
@@ -30,5 +30,9 @@ impl Parser {
 			}
 			_ => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos { line: 0, column: 0 })
 		}
+	}
+
+	pub fn expect_symbol(&mut self, expected_symbol: Symbol) -> Result<()> {
+		self.expect(TokenType::Symbol(expected_symbol))
 	}
 }
