@@ -138,6 +138,7 @@ impl Iterator for Lexer {
 						}
 						Token::create(TokenType::Comment, pos)
 					}
+					Symbol::SemiColon => Token::create(TokenType::EOL, pos),
 					_ => Token::create(TokenType::Symbol(symbol), pos)
 				}
 			} else {
