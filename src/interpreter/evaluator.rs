@@ -49,7 +49,8 @@ impl Interpreter {
 
 	fn evaluate_array_reference(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<Value> {
 		let head = self.evaluate_to_list(head_expr)?;
-		let index = self.evaluate_to_num(index_expr)?;
+		let mut index = self.evaluate_to_num(index_expr)?;
+		if index < 0.0 { index += head.len() as f32; }
 		if index < 0.0 || index as usize >= head.len() {
 			Error::create("Index out of bounds".to_string(), index_expr.pos)
 		} else {

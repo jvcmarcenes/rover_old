@@ -1,4 +1,4 @@
 
 arr = ["Ana", "Bob", "Carl"]
 
-writeline arr[-1]
+writeline arr[-3]
