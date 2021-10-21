@@ -1,6 +1,4 @@
 
-arr = ["Ana", [4, 8, 15, 16, 23, 42], "Carl"]
+arr = ["Ana", "Bob", "Carl"]
 
-i = 1
-
-writeline arr[i][3]
+writeline arr[-1]
