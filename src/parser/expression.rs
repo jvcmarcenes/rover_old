@@ -73,6 +73,7 @@ fn get_un_op_for_symbol(s: &Symbol) -> Option<UnaryOperator> {
 #[derive(Debug, Clone)]
 pub enum ExpressionType {
 	ValueLiteral { value: Literal },
+	StringTemplate { expressions: Vec<Expression> },
 	List { expressions: Vec<Expression> },
 	Map { table: HashMap<String, Expression> },
 	Group { expr: Box<Expression> },
@@ -170,6 +171,7 @@ impl Parser {
 						_ => Error::create(format!("Expected expression, found {:?}", symbol), token.pos)
 					}
 				}
+				TokenType::Template(tokens) => self.parse_template_string(tokens),
 				_ => Error::create(String::from("Unable to parse expression"), token.pos)
 			};
 			match res {
@@ -259,6 +261,21 @@ impl Parser {
 				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
 			}
 		}
+	}
+
+	fn parse_template_string(&mut self, tokens: Vec<Token>) -> Result<ExpressionType> {
+		let mut expressions: Vec<Expression> = Vec::new();
+		
+		let mut parser = Parser::new(tokens.into_iter().peekable());
+
+		loop {
+			match parser.parse_expression() {
+				Ok(expr) => expressions.push(expr),
+				Err(Error { message: _, pos: SourcePos { line: 0, column: 0 } }) => return Ok(ExpressionType::StringTemplate { expressions }),
+				Err(e) => return Err(e),
+			}
+		}
+
 	}
 
 	fn parse_unary_expression(&mut self, symbol: &Symbol, pos: SourcePos) -> Result<ExpressionType> {

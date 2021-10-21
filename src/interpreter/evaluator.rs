@@ -29,6 +29,7 @@ impl Interpreter {
 			ExpressionType::ArrayReference { head_expr, index_expr } => self.evaluate_array_reference(&head_expr, &index_expr),
 			ExpressionType::Map { table } => self.evaluate_map_literal(table),
 			ExpressionType::MapReference { head_expr, prop } => self.evaluate_map_reference(&head_expr, &prop),
+			ExpressionType::StringTemplate { expressions } => self.evaluate_string_template(expressions),
 		}
 	}
 
@@ -85,6 +86,18 @@ impl Interpreter {
 			value_table.insert(name.clone(), self.evaluate(&Box::new(expr.clone()))?);
 		}
 		Ok(Value::Map(value_table))
+	}
+
+	fn evaluate_string_template(&mut self, expressions: Vec<Expression>) -> Result<Value> {
+		let mut values: Vec<(Value, SourcePos)> = Vec::new() ;
+		for expr in expressions.iter() {
+			values.push((self.evaluate(&Box::new(expr.clone()))?, expr.pos));
+		}
+		let mut res: Value = Value::Str("".to_string());
+		for (value, pos) in values.iter() {
+			res = unwrap_or_error(res + value.clone(), *pos)?;
+		}
+		Ok(res)
 	}
 
 	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: &Box<Expression>) -> Result<Value> {

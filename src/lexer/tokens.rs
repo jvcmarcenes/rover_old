@@ -103,6 +103,7 @@ impl Keyword {
 pub enum TokenType {
 	Identifier(String),
 	Literal(Literal),
+	Template(Vec<Token>),
 	Symbol(Symbol),
 	Keyword(Keyword),
 	Comment,

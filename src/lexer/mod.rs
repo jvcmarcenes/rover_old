@@ -1,5 +1,6 @@
 
 pub mod tokens;
+pub mod template;
 
 use std::ops::Add;
 use std::{fs, io, iter::Peekable, vec::IntoIter};
@@ -8,23 +9,26 @@ use std::{fs, io, iter::Peekable, vec::IntoIter};
 use crate::lexer::tokens::*;
 use crate::{SourcePos, Result, Error};
 
+use self::template::TemplateLexer;
+
 pub struct Lexer {
 	raw_data: Peekable<IntoIter<char>>,
 	pos: SourcePos,
 }
 
 impl Lexer {
-	pub fn from_text(text: &str) -> Self {
-		let text = format!("{}\r\n\r\n", text); // inserts extra line skips at the end of the file
+
+	pub fn from_text(text: &str, pos: SourcePos) -> Self {
 		// println!("{:?}", text);
 		Lexer {
 			raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
-			pos: SourcePos { line: 1, column: 1 }
+			pos: pos
 		}
 	}
 
 	pub fn from_file(file_path: &str) -> io::Result<Self> {
-		Ok(Self::from_text(&fs::read_to_string(file_path)?))
+		let text = fs::read_to_string(file_path)?;
+		Ok(Self::from_text(&format!("{}\r\n\r\n", text), SourcePos::new(1, 1)))
 	}
 
 	fn next_data(&mut self) -> Option<char> {
@@ -108,6 +112,13 @@ impl Iterator for Lexer {
 			self.get_next_char_while(&mut value, |c| c != '"');
 			self.next_data();
 			token = Token::create(TokenType::Literal(Literal::Str(value)), pos);
+		} else if first_char == '\'' {
+			let mut value = String::new();
+			self.get_next_char_while(&mut value, |c| c != '\'');
+			self.next_data();
+
+			let mut template_lexer = TemplateLexer::new(&value, self.pos);
+			token = template_lexer.run();
 		} else {
 			let mut raw = first_char.to_string();
 			loop {

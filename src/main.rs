@@ -51,6 +51,8 @@ macro_rules! unwrap_or_exit {
 	};
 }
 
+// pub(crate) use unwrap_or_exit;
+
 fn get_ast(path: &str) -> Block {
 	let lexer = Lexer::from_file(path).unwrap();
 	let tokens = lexer.map(|token| unwrap_or_exit!(token, "Lexing", path)).collect::<Vec<_>>();

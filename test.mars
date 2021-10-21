@@ -1,15 +1,7 @@
 
-person = {
-	name = "John"
-	age = 23
-	job = {
-		title = "Developer"
-		salary = 1500, numbers = [4, 8, 15, 16, 23, 42]
-	}
-}
+first_name = "John"
+second_name = "Doe"
 
-writeline person
+full_name = '#{first_name} #{second_name}'
 
-person.job.numbers[0] = 22
-
-writeline person
+writeline 'Hello #{full_name}!'
