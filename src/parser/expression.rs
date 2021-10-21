@@ -1,4 +1,6 @@
 
+use std::collections::HashMap;
+
 use crate::*;
 use crate::lexer::tokens::*;
 use crate::parser::Parser;
@@ -72,9 +74,11 @@ fn get_un_op_for_symbol(s: &Symbol) -> Option<UnaryOperator> {
 pub enum ExpressionType {
 	ValueLiteral { value: Literal },
 	List { expressions: Vec<Expression> },
+	Map { table: HashMap<String, Expression> },
 	Group { expr: Box<Expression> },
 	VariableReference { name: String },
 	ArrayReference { head_expr: Box<Expression>, index_expr: Box<Expression> },
+	MapReference { head_expr: Box<Expression>, prop: String },
 	BinaryOperation {
 		op: BinaryOperator,
 		left_expr: Box<Expression>,
@@ -104,22 +108,40 @@ impl Parser {
 		let mut expr = self.parse_binary_r_expression(0, left_expr)?;
 
 		loop {
-			match self.tokens.peek() {
-				Some(token) if token.token_type == TokenType::Symbol(Symbol::OpenSqr) => {
-					self.tokens.next();
-					let index_expr = self.parse_expression()?;
-					self.expect_symbol(Symbol::CloseSqr)?;
-					let pos = index_expr.pos;
-					expr = Expression::new(
-						ExpressionType::ArrayReference {
-							head_expr: Box::new(expr), 
-							index_expr: Box::new(index_expr)
-						},
-						pos,
-					)
+			if let Some(token) = self.tokens.peek() {
+				match token.token_type {
+					TokenType::Symbol(Symbol::OpenSqr) => {
+						self.tokens.next();
+						let index_expr = self.parse_expression()?;
+						self.expect_symbol(Symbol::CloseSqr)?;
+						let pos = index_expr.pos;
+						expr = Expression::new(
+							ExpressionType::ArrayReference {
+								head_expr: Box::new(expr), 
+								index_expr: Box::new(index_expr)
+							},
+							pos,
+						)
+					}
+					TokenType::Symbol(Symbol::Period) => {
+						self.tokens.next();
+						match self.tokens.next() {
+							Some(Token { token_type: TokenType::Identifier(name), pos }) => {
+								expr = Expression::new(
+									ExpressionType::MapReference {
+										head_expr: Box::new(expr),
+										prop: name,
+									},
+									pos,
+								)
+							}
+							Some(token) => return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos),
+							None => return Error::create("Expected identifier, found EOF".to_string(), SourcePos::new(0, 0)),
+						}
+					}
+					_ => break,
 				}
-				_ => break,
-			}
+			} else { break; }
 		}
 
 		Ok(expr)
@@ -142,7 +164,8 @@ impl Parser {
 				TokenType::Symbol(symbol) => {
 					match symbol {
 						Symbol::OpenPar => self.parse_grouped_expression(),
-						Symbol::OpenSqr => self.parse_list_expression(),
+						Symbol::OpenSqr => self.parse_list_literal(),
+						Symbol::OpenBracket => self.parse_map_literal(),
 						symbol if is_unary_symbol(&symbol) => self.parse_unary_expression(&symbol, token.pos),
 						_ => Error::create(format!("Expected expression, found {:?}", symbol), token.pos)
 					}
@@ -172,7 +195,7 @@ impl Parser {
 		Ok(ExpressionType::Group { expr })
 	}
 
-	fn parse_list_expression(&mut self) -> Result<ExpressionType> {
+	fn parse_list_literal(&mut self) -> Result<ExpressionType> {
 		self.skip_new_lines();
 		let mut expressions: Vec<Expression> = Vec::new();
 
@@ -195,28 +218,47 @@ impl Parser {
 				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
 			}
 		}
+	}
 
-		// // self.skip_new_lines();
-		// loop {
-		// 	match self.tokens.peek() {
-		// 		Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseSqr) => {
-		// 			self.tokens.next();
-		// 			return Ok(ExpressionType::List { expressions: values });
-		// 		}
-		// 		Some(_) => {
-		// 			if values.len() > 0 {
-		// 				self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
-		// 				self.skip_new_lines();
-		// 			}
-		// 			match self.parse_expression() {
-		// 				Ok(expr) => values.push(expr),
-		// 				_ => continue,
-		// 			}
-		// 			// values.push(self.parse_expression()?);
-		// 		}
-		// 		None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
-		// 	}
-		// }
+	fn parse_map_literal(&mut self) -> Result<ExpressionType> {
+		self.skip_new_lines();
+		let mut table: HashMap<String, Expression> = HashMap::new();
+
+		loop {
+			match self.tokens.peek() {
+				Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseBracket) => {
+					self.tokens.next();
+					return Ok(ExpressionType::Map { table })
+				}
+				Some(token) if table.len() == 0 => {
+					if let TokenType::Identifier(name) = token.clone().token_type {
+						self.tokens.next();
+						self.expect_symbol(Symbol::Equals)?;
+						let expr = self.parse_expression()?;
+						table.insert(name, expr);
+					} else { return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos) }
+				}
+				Some(_) => {
+					self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
+					self.skip_new_lines();
+					if let Some(token) = self.tokens.peek() {
+						match token.token_type.clone() {
+							TokenType::Symbol(Symbol::CloseBracket) => continue,
+							TokenType::Identifier(name) => {
+								self.tokens.next();
+								self.expect_symbol(Symbol::Equals)?;
+								let expr = self.parse_expression()?;
+								table.insert(name, expr);
+							}
+							_ => return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos),
+						}
+					} else {
+						return Error::create("Expected identifier, found EOF".to_string(), SourcePos::new(0, 0));
+					}
+				}
+				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
+			}
+		}
 	}
 
 	fn parse_unary_expression(&mut self, symbol: &Symbol, pos: SourcePos) -> Result<ExpressionType> {

@@ -1,4 +1,6 @@
 
+use std::collections::HashMap;
+
 use text_io::try_read;
 
 use crate::{*, lexer::tokens::Literal, parser::expression::*};
@@ -17,19 +19,22 @@ impl Interpreter {
 	pub fn evaluate(&mut self, expr: &Box<Expression>) -> Result<Value> {
 		match expr.to_owned().expr_type {
 			ExpressionType::ValueLiteral { value } => self.evaluate_literal(value),
-			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(name, expr.pos),
+			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(&name, expr.pos),
 			ExpressionType::Group { expr } => self.evaluate(&expr),
 			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, &left_expr, &right_expr),
 			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, &expr),
 			ExpressionType::Read => self.evaluate_read(expr.pos),
 			ExpressionType::ReadNum => self.evaluate_readnum(expr.pos),
-			ExpressionType::List { expressions } => self.evaluate_list(expressions),
+			ExpressionType::List { expressions } => self.evaluate_list_literal(expressions),
 			ExpressionType::ArrayReference { head_expr, index_expr } => self.evaluate_array_reference(&head_expr, &index_expr),
+			ExpressionType::Map { table } => self.evaluate_map_literal(table),
+			ExpressionType::MapReference { head_expr, prop } => self.evaluate_map_reference(&head_expr, &prop),
 		}
 	}
 
 	fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f32> { self.evaluate(expr)?.to_num(expr.pos) }
 	fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<Value>> { self.evaluate(expr)?.to_list(expr.pos) }
+	fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, Value>> { self.evaluate(expr)?.to_map(expr.pos) }
 
 	fn evaluate_literal(&mut self, lit: Literal) -> Result<Value> {
 		let v = match lit {
@@ -40,8 +45,8 @@ impl Interpreter {
 		Ok(v)
 	}
 
-	fn evaluate_variable_reference(&mut self, name: String, pos: SourcePos) -> Result<Value> {
-		match self.symbol_table.get(&name) {
+	fn evaluate_variable_reference(&mut self, name: &str, pos: SourcePos) -> Result<Value> {
+		match self.symbol_table.get(name) {
 			Some(v) => Ok(v.clone()),
 			None => Error::create(format!("variable {} is not defined", name), pos),
 		}
@@ -58,12 +63,28 @@ impl Interpreter {
 		}
 	}
 
-	fn evaluate_list(&mut self, expr_vec: Vec<Expression>) -> Result<Value> {
+	fn evaluate_list_literal(&mut self, expr_vec: Vec<Expression>) -> Result<Value> {
 		let mut values: Vec<Value> = Vec::new();
 		for expr in expr_vec {
 			values.push(self.evaluate(&Box::new(expr))?);
 		}
 		Ok(Value::List(values))
+	}
+
+	fn evaluate_map_reference(&mut self, head_expr: &Box<Expression>, prop: &str) -> Result<Value> {
+		let head = self.evaluate_to_map(head_expr)?;
+		match head.get(prop) {
+			Some(val) => Ok(val.clone()),
+			None => Error::create(format!("Property {} does not exist on map", prop), head_expr.pos),
+		}
+	}
+
+	fn evaluate_map_literal(&mut self, expr_table: HashMap<String, Expression>) -> Result<Value> {
+		let mut value_table: HashMap<String, Value> = HashMap::new();
+		for (name, expr) in expr_table.iter() {
+			value_table.insert(name.clone(), self.evaluate(&Box::new(expr.clone()))?);
+		}
+		Ok(Value::Map(value_table))
 	}
 
 	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: &Box<Expression>) -> Result<Value> {

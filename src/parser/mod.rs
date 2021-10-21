@@ -28,7 +28,7 @@ impl Parser {
 					Ok(())
 				} else { Error::create(format!("Expected {:?}, found {:?}", expected_type, token.token_type), token.pos) }
 			}
-			_ => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos { line: 0, column: 0 })
+			_ => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos::new(0, 0))
 		}
 	}
 
@@ -40,7 +40,7 @@ impl Parser {
 					Ok(())
 				} else { Error::create(format!("Expected {:?}, found {:?}", expected_types, token.token_type), token.pos) }
 			}
-			_ => Error::create(format!("Expected {:?}, found EOF", expected_types), SourcePos { line: 0, column: 0 })
+			_ => Error::create(format!("Expected {:?}, found EOF", expected_types), SourcePos::new(0, 0))
 		}
 	}
 

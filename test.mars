@@ -1,12 +1,15 @@
 
-arr = [0, 1, [
-	0, 1, [
-		0,
-1,2
+person = {
+	name = "John"
+	age = 23
+	job = {
+		title = "Developer"
+		salary = 1500, numbers = [4, 8, 15, 16, 23, 42]
+	}
+}
 
-34;;
+writeline person
 
-	]
-], 3]
+person.job.numbers[0] = 22
 
-writeline arr
+writeline person

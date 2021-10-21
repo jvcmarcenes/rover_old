@@ -1,5 +1,5 @@
 
-use std::{fmt::Display, ops::{Add, Div, Mul, Rem, Sub}, result::Result};
+use std::{collections::HashMap, fmt::Display, ops::{Add, Div, Mul, Rem, Sub}, result::Result};
 
 use crate::{SourcePos, Error};
 
@@ -9,6 +9,7 @@ pub enum Value {
 	Num(f32),
 	Bool(bool),
 	List(Vec<Value>),
+	Map(HashMap<String, Value>)
 }
 
 impl Value {
@@ -24,6 +25,11 @@ impl Value {
 
 	pub fn to_list(&self, pos: SourcePos) -> crate::Result<Vec<Self>> {
 		if let Self::List(list) = self { Ok(list.clone()) }
+		else { Error::create("Expected a list of values".to_string(), pos) }
+	}
+
+	pub fn to_map(&self, pos: SourcePos) -> crate::Result<HashMap<String, Value>> {
+		if let Self::Map(table) = self { Ok(table.clone()) }
 		else { Error::create("Expected a list of values".to_string(), pos) }
 	}
 
@@ -62,6 +68,22 @@ impl Display for Value {
 				write!(f, "]")?;
 				Ok(())
 			},
+			Value::Map(map) => {
+				fn print_map(level: &str, map: &HashMap<String, Value>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+					write!(f, "{{\n")?;
+					for (key, value) in map.iter() {
+						if let Value::Map(in_map) = value {
+							write!(f, "  {}{} = ", level, key)?;
+							print_map(&format!("  {}", level), in_map, f)?;
+						} else {
+							write!(f, "  {}{} = {}\n", level, key, value)?;
+						}
+					}
+					write!(f, "{}}}\n", level)?;
+					Ok(())
+				}
+				print_map("", map, f)
+			}
 		}
 	}
 }
