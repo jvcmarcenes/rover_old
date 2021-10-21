@@ -1,12 +1,6 @@
 
-writeline "Enter a number"
+arr = ["Ana", [4, 8, 15, 16, 23, 42], "Carl"]
 
-num = readnum
+i = 1
 
-if num % 3 == 0 {
-	writeline num + " mod 3 = 0"
-} else if num % 3 == 1 {
-	writeline num + " mod 3 = 1"
-} else {
-	writeline num + " mod 3 = 2"
-}
+writeline arr[i][3]

@@ -32,7 +32,23 @@ impl Parser {
 		}
 	}
 
+	pub fn expect_any(&mut self, expected_types: Vec<TokenType>) -> Result<()> {
+		match self.tokens.peek() {
+			Some(token) => {
+				if expected_types.contains(&token.token_type) {
+					self.tokens.next();
+					Ok(())
+				} else { Error::create(format!("Expected {:?}, found {:?}", expected_types, token.token_type), token.pos) }
+			}
+			_ => Error::create(format!("Expected {:?}, found EOF", expected_types), SourcePos { line: 0, column: 0 })
+		}
+	}
+
 	pub fn expect_symbol(&mut self, expected_symbol: Symbol) -> Result<()> {
 		self.expect(TokenType::Symbol(expected_symbol))
+	}
+
+	pub fn expect_any_symbol(&mut self, expected_symbols: Vec<Symbol>) -> Result<()> {
+		self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
 	}
 }

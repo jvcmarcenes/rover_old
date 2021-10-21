@@ -8,6 +8,7 @@ pub enum Value {
 	Str(String),
 	Num(f32),
 	Bool(bool),
+	List(Vec<Value>),
 }
 
 impl Value {
@@ -16,10 +17,14 @@ impl Value {
 		else { Error::create("Expected a boolean value".to_string(), pos) }
 	}
 
-	#[allow(dead_code)]
 	pub fn to_num(&self, pos: SourcePos) -> crate::Result<f32> {
 		if let Self::Num(n) = self { Ok(*n) }
 		else { Error::create("Expected a numeric value".to_string(), pos) }
+	}
+
+	pub fn to_list(&self, pos: SourcePos) -> crate::Result<Vec<Self>> {
+		if let Self::List(list) = self { Ok(list.clone()) }
+		else { Error::create("Expected a list of values".to_string(), pos) }
 	}
 
 	pub fn math_op(f: fn(f32, f32) -> f32, lhs: Self, rhs: Self) -> Result<Value, String> {
@@ -45,6 +50,18 @@ impl Display for Value {
 			Value::Str(s) => write!(f, "{}", s),
 			Value::Num(n) => write!(f, "{}", n),
 			Value::Bool(b) => write!(f, "{}", b),
+			Value::List(list) => {
+				write!(f, "[")?;
+				let mut i = 0;
+				loop {
+					if i >= list.len() { break; }
+					write!(f, "{}", list[i])?;
+					if i + 1 < list.len() { write!(f, ", ")?; }
+					i += 1;
+				}
+				write!(f, "]")?;
+				Ok(())
+			},
 		}
 	}
 }
@@ -53,15 +70,10 @@ impl Add for Value {
 	type Output = Result<Self, String>;
 
 	fn add(self, rhs: Self) -> Self::Output {
-		match self {
-			Self::Str(_) => Ok(Self::Str(format!("{}{}", self, rhs))),
-			Self::Num(_) => {
-				match rhs {
-					Self::Str(_) => Ok(Self::Str(format!("{}{}", self, rhs))),
-					_ => Self::math_op(|a, b| a + b, self, rhs)
-				}
-			}
-			Self::Bool(_) => Err(String::from("Invalid operator for boolean type")),
+		match (&self, &rhs) {
+			(Self::Str(_), _) | (_, Self::Str(_)) => Ok(Self::Str(format!("{}{}", self, rhs))),
+			(Self::Num(_), Self::Num(_)) => Self::math_op(|a, b| a + b, self, rhs),
+			_ => Err("Invalid operator for type".to_string()),
 		}
 	}
 }

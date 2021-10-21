@@ -16,15 +16,20 @@ impl Interpreter {
 
 	pub fn evaluate(&mut self, expr: &Box<Expression>) -> Result<Value> {
 		match expr.to_owned().expr_type {
-			ExpressionType::Literal { value } => self.evaluate_literal(value),
+			ExpressionType::ValueLiteral { value } => self.evaluate_literal(value),
 			ExpressionType::VariableReference { name } => self.evaluate_variable_reference(name, expr.pos),
 			ExpressionType::Group { expr } => self.evaluate(&expr),
 			ExpressionType::BinaryOperation { op, left_expr, right_expr } => self.evaluate_bin_operation(op, &left_expr, &right_expr),
 			ExpressionType::UnaryOperation { op, expr } => self.evaluate_un_operation(op, &expr),
 			ExpressionType::Read => self.evaluate_read(expr.pos),
 			ExpressionType::ReadNum => self.evaluate_readnum(expr.pos),
+			ExpressionType::List { expressions } => self.evaluate_list(expressions),
+			ExpressionType::ArrayReference { head_expr, index_expr } => self.evaluate_array_reference(&head_expr, &index_expr),
 		}
 	}
+
+	fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f32> { self.evaluate(expr)?.to_num(expr.pos) }
+	fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<Value>> { self.evaluate(expr)?.to_list(expr.pos) }
 
 	fn evaluate_literal(&mut self, lit: Literal) -> Result<Value> {
 		let v = match lit {
@@ -40,6 +45,24 @@ impl Interpreter {
 			Some(v) => Ok(v.clone()),
 			None => Error::create(format!("variable {} is not defined", name), pos),
 		}
+	}
+
+	fn evaluate_array_reference(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<Value> {
+		let head = self.evaluate_to_list(head_expr)?;
+		let index = self.evaluate_to_num(index_expr)?;
+		if let Some(val) = head.get(index as usize) {
+			Ok(val.clone())
+		} else {
+			Error::create("Unable to index array".to_string(), index_expr.pos)
+		}
+	}
+
+	fn evaluate_list(&mut self, expr_vec: Vec<Expression>) -> Result<Value> {
+		let mut values: Vec<Value> = Vec::new();
+		for expr in expr_vec {
+			values.push(self.evaluate(&Box::new(expr))?);
+		}
+		Ok(Value::List(values))
 	}
 
 	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: &Box<Expression>) -> Result<Value> {

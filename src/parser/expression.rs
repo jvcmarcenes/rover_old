@@ -70,9 +70,11 @@ fn get_un_op_for_symbol(s: &Symbol) -> Option<UnaryOperator> {
 
 #[derive(Debug, Clone)]
 pub enum ExpressionType {
-	Literal { value: Literal },
+	ValueLiteral { value: Literal },
+	List { expressions: Vec<Expression> },
 	Group { expr: Box<Expression> },
 	VariableReference { name: String },
+	ArrayReference { head_expr: Box<Expression>, index_expr: Box<Expression> },
 	BinaryOperation {
 		op: BinaryOperator,
 		left_expr: Box<Expression>,
@@ -99,8 +101,28 @@ impl Expression {
 impl Parser {
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
-		// println!("{:?}", left_expr);
-		self.parse_binary_r_expression(0, left_expr)		
+		let mut expr = self.parse_binary_r_expression(0, left_expr)?;
+
+		loop {
+			match self.tokens.peek() {
+				Some(token) if token.token_type == TokenType::Symbol(Symbol::OpenSqr) => {
+					self.tokens.next();
+					let index_expr = self.parse_expression()?;
+					self.expect_symbol(Symbol::CloseSqr)?;
+					let pos = index_expr.pos;
+					expr = Expression::new(
+						ExpressionType::ArrayReference {
+							head_expr: Box::new(expr), 
+							index_expr: Box::new(index_expr)
+						},
+						pos,
+					)
+				}
+				_ => break,
+			}
+		}
+
+		Ok(expr)
 	}
 
 	fn parse_expression_no_binary(&mut self) -> Result<Expression> {
@@ -117,8 +139,14 @@ impl Parser {
 						_ => Error::create(format!("Expected expression, found {:?}", keyword), token.pos)
 					}
 				}
-				TokenType::Symbol(Symbol::OpenPar) => self.parse_grouped_expression(),
-				TokenType::Symbol(symbol) if is_unary_symbol(&symbol) => self.parse_unary_expression(&symbol, token.pos),
+				TokenType::Symbol(symbol) => {
+					match symbol {
+						Symbol::OpenPar => self.parse_grouped_expression(),
+						Symbol::OpenSqr => self.parse_list_expression(),
+						symbol if is_unary_symbol(&symbol) => self.parse_unary_expression(&symbol, token.pos),
+						_ => Error::create(format!("Expected expression, found {:?}", symbol), token.pos)
+					}
+				}
 				_ => Error::create(String::from("Unable to parse expression"), token.pos)
 			};
 			match res {
@@ -131,7 +159,7 @@ impl Parser {
 	}
 
 	fn parse_literal_expression(&mut self, lit: Literal) -> Result<ExpressionType> {
-		Ok(ExpressionType::Literal { value: lit })
+		Ok(ExpressionType::ValueLiteral { value: lit })
 	}
 
 	fn parse_variable_reference_expression(&mut self, name: String) -> Result<ExpressionType> {
@@ -140,9 +168,29 @@ impl Parser {
 
 	fn parse_grouped_expression(&mut self) -> Result<ExpressionType> {
 		let expr = Box::new(self.parse_expression()?);
-		match self.expect(TokenType::Symbol(Symbol::ClosePar)) {
-			Ok(_) => Ok(ExpressionType::Group { expr }),
-			Err(e) => Err(e),
+		self.expect_symbol(Symbol::ClosePar)?; 
+		Ok(ExpressionType::Group { expr })
+	}
+
+	fn parse_list_expression(&mut self) -> Result<ExpressionType> {
+		self.skip_new_lines();
+		let mut values: Vec<Expression> = Vec::new();
+		loop {
+			match self.tokens.peek() {
+				Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseSqr) => {
+					self.tokens.next();
+					return Ok(ExpressionType::List { expressions: values });
+				}
+				Some(_) => {
+					if values.len() > 0 {
+						self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
+					}
+					self.skip_new_lines();
+					values.push(self.parse_expression()?);
+					self.skip_new_lines();
+				}
+				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
+			}
 		}
 	}
 
