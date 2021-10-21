@@ -51,4 +51,17 @@ impl Parser {
 	pub fn expect_any_symbol(&mut self, expected_symbols: Vec<Symbol>) -> Result<()> {
 		self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
 	}
+
+	pub fn optional(&mut self, optional_token: TokenType) {
+		match self.tokens.peek() {
+			Some(token) if token.token_type == optional_token => {
+				self.tokens.next();
+			}
+			_ => ()
+		}
+	}
+
+	pub fn optional_symbol(&mut self, optional_symbol: Symbol) {
+		self.optional(TokenType::Symbol(optional_symbol));
+	}
 }

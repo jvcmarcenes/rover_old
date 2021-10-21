@@ -174,24 +174,49 @@ impl Parser {
 
 	fn parse_list_expression(&mut self) -> Result<ExpressionType> {
 		self.skip_new_lines();
-		let mut values: Vec<Expression> = Vec::new();
+		let mut expressions: Vec<Expression> = Vec::new();
+
 		loop {
 			match self.tokens.peek() {
 				Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseSqr) => {
 					self.tokens.next();
-					return Ok(ExpressionType::List { expressions: values });
+					return Ok(ExpressionType::List { expressions });
 				}
+				Some(_) if expressions.len() == 0 => expressions.push(self.parse_expression()?),
 				Some(_) => {
-					if values.len() > 0 {
-						self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
+					self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
+					self.skip_new_lines();
+					match self.tokens.peek() {
+						Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseSqr) => continue,
+						Some(_) => expressions.push(self.parse_expression()?),
+						None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
 					}
-					self.skip_new_lines();
-					values.push(self.parse_expression()?);
-					self.skip_new_lines();
 				}
 				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
 			}
 		}
+
+		// // self.skip_new_lines();
+		// loop {
+		// 	match self.tokens.peek() {
+		// 		Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseSqr) => {
+		// 			self.tokens.next();
+		// 			return Ok(ExpressionType::List { expressions: values });
+		// 		}
+		// 		Some(_) => {
+		// 			if values.len() > 0 {
+		// 				self.expect_any(vec![TokenType::EOL, TokenType::Symbol(Symbol::Comma)])?;
+		// 				self.skip_new_lines();
+		// 			}
+		// 			match self.parse_expression() {
+		// 				Ok(expr) => values.push(expr),
+		// 				_ => continue,
+		// 			}
+		// 			// values.push(self.parse_expression()?);
+		// 		}
+		// 		None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
+		// 	}
+		// }
 	}
 
 	fn parse_unary_expression(&mut self, symbol: &Symbol, pos: SourcePos) -> Result<ExpressionType> {

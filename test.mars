@@ -1,4 +1,12 @@
 
-arr = ["Ana", "Bob", "Carl"]
+arr = [0, 1, [
+	0, 1, [
+		0,
+1,2
 
-writeline arr[-3]
+34;;
+
+	]
+], 3]
+
+writeline arr
