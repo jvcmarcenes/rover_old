@@ -80,6 +80,7 @@ pub enum Keyword {
 	True, False,
 	Write, Writeline, Read, ReadNum,
 	If, Else,
+	Loop, Break, Continue,
 }
 
 impl Keyword {
@@ -93,6 +94,9 @@ impl Keyword {
 			"readnum" => Keyword::ReadNum,
 			"if" => Keyword::If,
 			"else" => Keyword::Else,
+			"loop" => Keyword::Loop,
+			"break" => Keyword::Break,
+			"continue" => Keyword::Continue,
 			_ => return None,
 		};
 		Some(keyword)

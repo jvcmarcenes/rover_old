@@ -2,7 +2,7 @@ use std::{iter::Peekable, vec::IntoIter};
 
 use crate::{Error, Result, SourcePos, lexer::Lexer};
 
-use super::tokens::{Literal, Token, TokenType};
+use super::tokens::{Literal, Symbol, Token, TokenType};
 
 pub struct TemplateLexer {
 	raw_data: Peekable<IntoIter<char>>,
@@ -46,9 +46,9 @@ impl TemplateLexer {
 							}
 
 							self.next_data();
-		
-							// tokens.push(Token::new(TokenType::Symbol(Symbol::HashtagOpenBracket), self.pos));
 
+							tokens.push(Token::new(TokenType::Symbol(Symbol::HashtagOpenBracket), self.pos));
+		
 							let lexer = Lexer::from_text(&value, self.pos);
 							for token_res in lexer.into_iter() {
 								match token_res {
@@ -57,8 +57,7 @@ impl TemplateLexer {
 								}
 							}
 
-							// tokens.push(Token::new(TokenType::Symbol(Symbol::CloseBracket), self.pos));
-
+							tokens.push(Token::new(TokenType::Symbol(Symbol::CloseBracket), self.pos))
 						}
 						_ => {
 							let mut value = c.to_string();

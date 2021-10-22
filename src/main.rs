@@ -29,12 +29,8 @@ pub struct Error {
 }
 
 impl Error {
-	pub fn new(message: String, pos: SourcePos) -> Self {
-		Self { message, pos }
-	}
-	pub fn create<T>(message: String, pos: SourcePos) -> Result<T> {
-		Err(Self::new(message, pos))
-	}
+	pub fn new(message: String, pos: SourcePos) -> Self { Self { message, pos } }
+	pub fn create<T>(message: String, pos: SourcePos) -> Result<T> { Err(Self::new(message, pos)) }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

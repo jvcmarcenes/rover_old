@@ -71,6 +71,14 @@ fn get_un_op_for_symbol(s: &Symbol) -> Option<UnaryOperator> {
 }
 
 #[derive(Debug, Clone)]
+pub enum Literal {
+	Void,
+	Str(String),
+	Num(f32),
+	Bool(bool),
+}
+
+#[derive(Debug, Clone)]
 pub enum ExpressionType {
 	ValueLiteral { value: Literal },
 	StringTemplate { expressions: Vec<Expression> },
@@ -104,6 +112,17 @@ impl Expression {
 }
 
 impl Parser {
+	pub fn parse_expression_or_void(&mut self) -> Result<Expression> {
+		match self.tokens.peek() {
+			Some(token) if [TokenType::EOL, TokenType::Symbol(Symbol::CloseBracket)].contains(&token.token_type) => {
+				let pos = token.pos;
+				self.tokens.next();
+				Expression::create(ExpressionType::ValueLiteral { value: Literal::Void }, pos) 
+			}
+			_ => self.parse_expression(),
+		}
+	}
+
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
 		let mut expr = self.parse_binary_r_expression(0, left_expr)?;
@@ -183,8 +202,12 @@ impl Parser {
 		}
 	}
 
-	fn parse_literal_expression(&mut self, lit: Literal) -> Result<ExpressionType> {
-		Ok(ExpressionType::ValueLiteral { value: lit })
+	fn parse_literal_expression(&mut self, lit: tokens::Literal) -> Result<ExpressionType> {
+		match lit {
+			tokens::Literal::Str(s) => Ok(ExpressionType::ValueLiteral { value: Literal::Str(s) }),
+			tokens::Literal::Num(n) => Ok(ExpressionType::ValueLiteral { value: Literal::Num(n) }),
+			tokens::Literal::Bool(b) => Ok(ExpressionType::ValueLiteral { value: Literal::Bool(b) }),
+		}
 	}
 
 	fn parse_variable_reference_expression(&mut self, name: String) -> Result<ExpressionType> {
@@ -269,10 +292,17 @@ impl Parser {
 		let mut parser = Parser::new(tokens.into_iter().peekable());
 
 		loop {
-			match parser.parse_expression() {
-				Ok(expr) => expressions.push(expr),
-				Err(Error { message: _, pos: SourcePos { line: 0, column: 0 } }) => return Ok(ExpressionType::StringTemplate { expressions }),
-				Err(e) => return Err(e),
+			if let Some(token) = parser.tokens.peek() {
+				match token.token_type {
+					TokenType::Symbol(Symbol::HashtagOpenBracket) => {
+						parser.tokens.next();
+						expressions.push(parser.parse_expression()?);
+						parser.expect_symbol(Symbol::CloseBracket)?;
+					}
+					_ => expressions.push(parser.parse_expression()?),
+				}
+			} else {
+				return Ok(ExpressionType::StringTemplate { expressions })
 			}
 		}
 

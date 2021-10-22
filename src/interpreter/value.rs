@@ -5,6 +5,7 @@ use crate::{SourcePos, Error};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
+	Void,
 	Str(String),
 	Num(f32),
 	Bool(bool),
@@ -25,12 +26,12 @@ impl Value {
 
 	pub fn to_list(&self, pos: SourcePos) -> crate::Result<Vec<Self>> {
 		if let Self::List(list) = self { Ok(list.clone()) }
-		else { Error::create("Expected a list of values".to_string(), pos) }
+		else { Error::create("Expected a list".to_string(), pos) }
 	}
 
 	pub fn to_map(&self, pos: SourcePos) -> crate::Result<HashMap<String, Value>> {
 		if let Self::Map(table) = self { Ok(table.clone()) }
-		else { Error::create("Expected a list of values".to_string(), pos) }
+		else { Error::create("Expected a map".to_string(), pos) }
 	}
 
 	pub fn math_op(f: fn(f32, f32) -> f32, lhs: Self, rhs: Self) -> Result<Value, String> {
@@ -53,6 +54,7 @@ impl Value {
 impl Display for Value {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
+			Value::Void => write!(f, ""),
 			Value::Str(s) => write!(f, "{}", s),
 			Value::Num(n) => write!(f, "{}", n),
 			Value::Bool(b) => write!(f, "{}", b),

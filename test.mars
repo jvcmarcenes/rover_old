@@ -1,7 +1,42 @@
 
-first_name = "John"
-second_name = "Doe"
+loop {
+	writeline 'Enter values for x and y'
 
-full_name = '#{first_name} #{second_name}'
+	x = readnum
+	y = readnum
 
-writeline 'Hello #{full_name}!'
+	if x % 2 != 0 || y % 2 != 0 {
+		writeline 'Enter even values for x and y'
+		continue
+	}
+
+	if x >= y {
+		writeline 'x must be smaller than y'
+		continue
+	}
+
+	break
+}
+
+writeline
+
+loop {
+	offset = (y - x) / 2
+	counter = 0
+
+	loop {
+		if counter < offset || counter > offset + x {
+			write ' '
+		} else {
+			write '*'
+		}
+
+		counter = counter + 1
+		if counter > y { break }
+	}
+
+	writeline
+
+	x = x + 2
+	if x > y { break }
+}

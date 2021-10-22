@@ -4,7 +4,6 @@ pub mod template;
 
 use std::ops::Add;
 use std::{fs, io, iter::Peekable, vec::IntoIter};
-// use log::trace;
 
 use crate::lexer::tokens::*;
 use crate::{SourcePos, Result, Error};
@@ -22,7 +21,7 @@ impl Lexer {
 		// println!("{:?}", text);
 		Lexer {
 			raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
-			pos: pos
+			pos
 		}
 	}
 
@@ -74,7 +73,6 @@ impl Iterator for Lexer {
 		loop {
 			match self.next_data() {
 				Some(c) if c.is_whitespace() => {
-					// self.pos.column += 1;
 					if c == '\n' {
 						return Some(Token::create(TokenType::EOL, pos));
 					}
@@ -128,7 +126,7 @@ impl Iterator for Lexer {
 						raw.pop();
 						break;
 					}
-					self.raw_data.next();
+					self.next_data();
 				} else { break }
 			}
 			token = if let Some(symbol) = Symbol::get(&raw) {
@@ -139,10 +137,10 @@ impl Iterator for Lexer {
 					}
 					Symbol::OpenParHashtag => {
 						loop {
-							if let (Some(c1), Some(c2)) = (self.raw_data.next(), self.raw_data.peek()) {
+							if let (Some(c1), Some(c2)) = (self.next_data(), self.raw_data.peek()) {
 								let s = c1.to_string().add(&c2.to_string());
 								if s == "#)" {
-									self.raw_data.next();
+									self.next_data();
 									break;
 								}
 							} else { return Some(Error::create("Multiline comment not closed".to_string(), pos)) }

@@ -15,6 +15,10 @@ pub struct Interpreter {
 	program: Block,
 }
 
+pub enum Message {
+	None, Break, Continue
+}
+
 impl Interpreter {
 
 	pub fn new(program: Block) -> Self {
@@ -24,7 +28,7 @@ impl Interpreter {
 		}
 	}
 
-	pub fn run_block(&mut self, block: Block) -> Result<()> {
+	pub fn run_block(&mut self, block: &Block) -> Result<Message> {
 		let mut iter = block.iter();
 
 		loop {
@@ -33,35 +37,47 @@ impl Interpreter {
 					StatementType::Write { expr } => self.execute_write(&expr),
 					StatementType::Writeline { expr } => self.execute_writeline(&expr),
 					StatementType::Assignment { name, path, expr } => self.execute_assigment(name, statement.pos, path, &expr),
-					StatementType::IfStatement { condition, then_block, else_block } => self.execute_if_statement(&condition, then_block, else_block),
+					StatementType::If { condition, then_block, else_block } => self.execute_if_statement(&condition, then_block, else_block),
+					StatementType::Loop { block } => {
+						loop {
+							match self.run_block(&block)? {
+								Message::Break => break,
+								_ => continue,
+							}
+						}
+						Ok(Message::None)
+					}
+					StatementType::Break => Ok(Message::Break),
+					StatementType::Continue => Ok(Message::Continue),
 				};
 				match res {
-					Ok(_) => continue,
+					Ok(Message::None) => continue,
+					Ok(msg) => return Ok(msg),
 					Err(e) => return Err(e),
 				}
 			} else {
-				return Ok(())
+				return Ok(Message::None)
 			}
 		}
 	}
 
-	pub fn run(&mut self) -> Result<()> {
-		self.run_block(self.program.clone())		
+	pub fn run(&mut self) -> Result<Message> {
+		self.run_block(&self.program.clone())		
 	}
 
-	fn execute_write(&mut self, expr: &Box<Expression>) -> Result<()> {
+	fn execute_write(&mut self, expr: &Box<Expression>) -> Result<Message> {
 		let value = self.evaluate(expr)?;
 		print!("{}", value);
-		Ok(())
+		Ok(Message::None)
 	}
 
-	fn execute_writeline(&mut self, expr: &Box<Expression>) -> Result<()> {
+	fn execute_writeline(&mut self, expr: &Box<Expression>) -> Result<Message> {
 		let value = self.evaluate(expr)?;
-		println!("{}", value);
-		Ok(())
+		print!("{}\n", value);
+		Ok(Message::None)
 	}
 
-	fn execute_assigment(&mut self, name: String, pos: SourcePos, path: Vec<Expression>, expr: &Box<Expression>) -> Result<()> {
+	fn execute_assigment(&mut self, name: String, pos: SourcePos, path: Vec<Expression>, expr: &Box<Expression>) -> Result<Message> {
 
 		fn calculate_new_value(base: Value, base_pos: SourcePos, path: &mut IntoIter<(Value, SourcePos)>, value: Value) -> Result<Value> {
 			match path.next() {
@@ -115,16 +131,16 @@ impl Interpreter {
 		}
 
 		self.symbol_table.insert(name, calculate_new_value(base, pos, &mut values.into_iter(), value)?);
-		Ok(())
+		Ok(Message::None)
 	}
 
-	fn execute_if_statement(&mut self, condition: &Box<Expression>, then_block: Block, else_block: Block) -> Result<()> {
+	fn execute_if_statement(&mut self, condition: &Box<Expression>, then_block: Block, else_block: Block) -> Result<Message> {
 		let value = self.evaluate(condition)?.to_bool(condition.pos)?;
 
 		if value {
-			self.run_block(then_block)
+			self.run_block(&then_block)
 		} else {
-			self.run_block(else_block)
+			self.run_block(&else_block)
 		}
 	}
 

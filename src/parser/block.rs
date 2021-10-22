@@ -36,9 +36,10 @@ impl Parser {
 
 		loop {
 			self.skip_new_lines();
-			match self.tokens.peek() {
-				None => return Ok(Block::new(statements)),
-				_ => statements.push(self.parse_statement()?)
+			if let Some(_) = self.tokens.peek() {
+				statements.push(self.parse_statement()?)
+			} else {
+				return Ok(Block::new(statements));
 			}
 		}
 	}
@@ -51,14 +52,18 @@ impl Parser {
 
 		loop {
 			self.skip_new_lines();
-			match self.tokens.peek() {
-				None => return Error::create("Statement Block was not closed".to_string(), SourcePos::new(0, 0)),
-				Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseBracket) => {
-					self.tokens.next();
-					return Ok(Block::new(statements));
+			if let Some(token) = self.tokens.peek() {
+				match token.token_type {
+					TokenType::Symbol(Symbol::CloseBracket) => {
+						self.tokens.next();
+						return Ok(Block::new(statements));
+					}
+					_ => statements.push(self.parse_statement()?),
 				}
-				_ => statements.push(self.parse_statement()?),
+			} else {
+				return Error::create("Statement Block was not closed".to_string(), SourcePos::new(0, 0))
 			}
 		}
 	}
+
 }

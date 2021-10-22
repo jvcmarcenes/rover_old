@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use text_io::try_read;
 
-use crate::{*, lexer::tokens::Literal, parser::expression::*};
+use crate::{*, parser::expression::*, parser::expression::Literal};
 
 use super::{Interpreter, value::Value};
 
@@ -39,6 +39,7 @@ impl Interpreter {
 
 	fn evaluate_literal(&mut self, lit: Literal) -> Result<Value> {
 		let v = match lit {
+			Literal::Void => Value::Void,
 			Literal::Str(s) => Value::Str(s),
 			Literal::Num(n) => Value::Num(n),
 			Literal::Bool(b) => Value::Bool(b),
@@ -144,7 +145,7 @@ impl Interpreter {
 	}
 
 	fn evaluate_readnum(&mut self, pos: SourcePos) -> Result<Value> {
-		let num_res: std::result::Result<f32, text_io::Error> = try_read!();
+		let num_res: std::result::Result<f32, text_io::Error> = try_read!("{}\r\n"); // I believe this won't work on other platforms
 		match num_res {
 			Ok(num) => Ok(Value::Num(num)),
 			Err(_) => Error::create("Invalid console input, expected a number".to_string(), pos),
