@@ -5,7 +5,7 @@ use text_io::try_read;
 
 use crate::{*, parser::expression::*, parser::expression::Literal};
 
-use super::{Interpreter, value::Value};
+use super::{Interpreter, value::{Value, function::Function}};
 
 fn unwrap_or_error(res: std::result::Result<Value, String>, pos: SourcePos) -> Result<Value> {
 	match res {
@@ -26,16 +26,19 @@ impl Interpreter {
 			ExpressionType::Read => self.evaluate_read(expr.pos),
 			ExpressionType::ReadNum => self.evaluate_readnum(expr.pos),
 			ExpressionType::List { expressions } => self.evaluate_list_literal(expressions),
-			ExpressionType::ArrayReference { head_expr, index_expr } => self.evaluate_array_reference(&head_expr, &index_expr),
+			ExpressionType::IndexAccess { head_expr, index_expr } => self.evaluate_index_access(&head_expr, &index_expr),
 			ExpressionType::Map { table } => self.evaluate_map_literal(table),
-			ExpressionType::MapReference { head_expr, prop } => self.evaluate_map_reference(&head_expr, &prop),
+			ExpressionType::PropertyAccess { head_expr, prop } => self.evaluate_property_access(&head_expr, &prop),
 			ExpressionType::StringTemplate { expressions } => self.evaluate_string_template(expressions),
+			ExpressionType::FunctionDef { params, block } => self.evaluate_function_def(params, block),
+			ExpressionType::FunctionCall { head_expr, args_expr } => self.evaluate_function_call(&head_expr, args_expr),
 		}
 	}
 
-	fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f32> { self.evaluate(expr)?.to_num(expr.pos) }
-	fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<Value>> { self.evaluate(expr)?.to_list(expr.pos) }
-	fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, Value>> { self.evaluate(expr)?.to_map(expr.pos) }
+	pub fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f32> { self.evaluate(expr)?.to_num(expr.pos) }
+	pub fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<Value>> { self.evaluate(expr)?.to_list(expr.pos) }
+	pub fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, Value>> { self.evaluate(expr)?.to_map(expr.pos) }
+	pub fn evaluate_to_function(&mut self, expr: &Box<Expression>) -> Result<Function> { self.evaluate(expr)?.to_function(expr.pos) }
 
 	fn evaluate_literal(&mut self, lit: Literal) -> Result<Value> {
 		let v = match lit {
@@ -54,7 +57,7 @@ impl Interpreter {
 		}
 	}
 
-	fn evaluate_array_reference(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<Value> {
+	fn evaluate_index_access(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<Value> {
 		let head = self.evaluate_to_list(head_expr)?;
 		let mut index = self.evaluate_to_num(index_expr)?;
 		if index < 0.0 { index += head.len() as f32; }
@@ -73,7 +76,7 @@ impl Interpreter {
 		Ok(Value::List(values))
 	}
 
-	fn evaluate_map_reference(&mut self, head_expr: &Box<Expression>, prop: &str) -> Result<Value> {
+	fn evaluate_property_access(&mut self, head_expr: &Box<Expression>, prop: &str) -> Result<Value> {
 		let head = self.evaluate_to_map(head_expr)?;
 		match head.get(prop) {
 			Some(val) => Ok(val.clone()),
@@ -99,6 +102,35 @@ impl Interpreter {
 			res = unwrap_or_error(res + value.clone(), *pos)?;
 		}
 		Ok(res)
+	}
+
+	fn evaluate_function_def(&mut self, params: Vec<String>, block: Block) -> Result<Value> {
+		Ok(Value::Function(Function::new(params, block)))
+	}
+
+	pub fn evaluate_function_call(&mut self, head_expr: &Box<Expression>, args_expr: Vec<Expression>) -> Result<Value> {
+		let head = self.evaluate_to_function(head_expr)?;
+
+		if head.params.len() != args_expr.len() {
+			return Error::create(format!("Expected {} arguments, received {}", head.params.len(), args_expr.len()), head_expr.pos);
+		}
+
+		let mut symbol_table: HashMap<String, Value> = HashMap::new();
+
+		for (key, expr) in head.params.iter().zip(args_expr.iter()) {
+			let value = self.evaluate(&Box::new(expr.clone()))?;
+			symbol_table.insert(key.clone(), value);
+		}
+
+		self.symbol_table.push(symbol_table);
+		let ret = match self.run_block(&head.block)? {
+			Message::Return(value) => value,
+			_ => Value::Void,
+		};
+		self.symbol_table.pop()?;
+
+		Ok(ret)
+
 	}
 
 	fn evaluate_un_operation(&mut self, op: UnaryOperator, expr: &Box<Expression>) -> Result<Value> {

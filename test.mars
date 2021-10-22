@@ -1,42 +1,8 @@
 
-loop {
-	writeline 'Enter values for x and y'
-
-	x = readnum
-	y = readnum
-
-	if x % 2 != 0 || y % 2 != 0 {
-		writeline 'Enter even values for x and y'
-		continue
+a = {
+	b = function {
+		writeline 'Hello'
 	}
-
-	if x >= y {
-		writeline 'x must be smaller than y'
-		continue
-	}
-
-	break
 }
 
-writeline
-
-loop {
-	offset = (y - x) / 2
-	counter = 0
-
-	loop {
-		if counter < offset || counter > offset + x {
-			write ' '
-		} else {
-			write '*'
-		}
-
-		counter = counter + 1
-		if counter > y { break }
-	}
-
-	writeline
-
-	x = x + 2
-	if x > y { break }
-}
+a.b!

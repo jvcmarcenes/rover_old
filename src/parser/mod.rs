@@ -13,6 +13,7 @@ type TokenIter = Peekable<IntoIter<Token>>;
 pub struct Parser {
 	tokens: TokenIter,
 	in_loop: bool,
+	in_function: bool,
 }
 
 impl Parser {
@@ -21,6 +22,7 @@ impl Parser {
 		Parser { 
 			tokens: tokens.filter(|token| token.token_type != TokenType::Comment).collect::<Vec<Token>>().into_iter().peekable(),
 			in_loop: false,
+			in_function: false,
 		}
 	}
 
@@ -61,17 +63,24 @@ impl Parser {
 	// 	self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
 	// }
 
-	// pub fn optional(&mut self, optional_token: TokenType) -> bool {
-	// 	match self.tokens.peek() {
-	// 		Some(token) if token.token_type == optional_token => {
-	// 			self.tokens.next();
-	// 			true
-	// 		}
-	// 		_ => false
-	// 	}
-	// }
+	pub fn optional(&mut self, optional_token: TokenType) -> bool {
+		match self.tokens.peek() {
+			Some(token) if token.token_type == optional_token => {
+				self.tokens.next();
+				true
+			}
+			_ => false
+		}
+	}
 
 	// pub fn optional_symbol(&mut self, optional_symbol: Symbol) -> bool {
 	// 	self.optional(TokenType::Symbol(optional_symbol))
 	// }
+
+	pub fn optional_eol(&mut self) -> bool {
+		match self.tokens.peek() {
+			Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseBracket) => true,
+			_ => self.optional(TokenType::EOL),
+		}
+	} 
 }

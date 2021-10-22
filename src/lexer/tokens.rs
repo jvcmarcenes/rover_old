@@ -81,6 +81,7 @@ pub enum Keyword {
 	Write, Writeline, Read, ReadNum,
 	If, Else,
 	Loop, Break, Continue,
+	Function, Return,
 }
 
 impl Keyword {
@@ -97,6 +98,8 @@ impl Keyword {
 			"loop" => Keyword::Loop,
 			"break" => Keyword::Break,
 			"continue" => Keyword::Continue,
+			"function" => Keyword::Function,
+			"return" => Keyword::Return,
 			_ => return None,
 		};
 		Some(keyword)

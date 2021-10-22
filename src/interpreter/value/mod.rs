@@ -1,7 +1,11 @@
 
+pub mod function;
+
 use std::{collections::HashMap, fmt::Display, ops::{Add, Div, Mul, Rem, Sub}, result::Result};
 
 use crate::{SourcePos, Error};
+
+use self::function::Function;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
@@ -10,7 +14,8 @@ pub enum Value {
 	Num(f32),
 	Bool(bool),
 	List(Vec<Value>),
-	Map(HashMap<String, Value>)
+	Map(HashMap<String, Value>),
+	Function(Function),
 }
 
 impl Value {
@@ -85,7 +90,8 @@ impl Display for Value {
 					Ok(())
 				}
 				print_map("", map, f)
-			}
+			},
+			Value::Function(_) => panic!("Can't write out a function")
 		}
 	}
 }

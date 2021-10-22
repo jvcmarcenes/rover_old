@@ -1,14 +1,16 @@
 
 use crate::*;
-use crate::parser::{*, expression::*, expression::Literal, block::*};
+use crate::parser::{*, expression::*, block::*};
 
 #[derive(Debug, Clone)]
 pub enum StatementType {
 	Write { expr: Box<Expression> },
 	Writeline { expr: Box<Expression> },
-	Assignment { name: String, path: Vec<Expression>, expr: Box<Expression> },
+	Assignment { path: Box<Expression>, expr: Box<Expression> },
 	If { condition: Box<Expression>, then_block: Block, else_block: Block },
-	Loop { block: Block }, Break, Continue
+	Loop { block: Block }, Break, Continue,
+	FunctionCall { head_expr: Box<Expression>, args_expr: Vec<Expression> },
+	Return { expr: Box<Expression> }
 }
 
 #[derive(Debug, Clone)]
@@ -25,23 +27,39 @@ impl Statement {
 impl Parser {
 
 	pub fn parse_statement(&mut self) -> Result<Statement> {
-		if let Some(token) = self.tokens.next() {
+		if let Some(token) = self.tokens.peek() {
 			let pos = token.pos;
 			let statement = match token.token_type {
-				TokenType::Identifier(name) => self.parse_assigment_statement(&name,pos)?,
+				TokenType::Identifier(_) => {
+					let expr = self.parse_expression()?;
+					match expr.expr_type {
+						ExpressionType::FunctionCall { head_expr, args_expr } => {
+							Statement::new(StatementType::FunctionCall { head_expr, args_expr }, expr.pos)
+						}
+						_ => self.parse_assigment_statement(Box::new(expr))?,
+					}
+				}
 				TokenType::Keyword(keyword) => match keyword {
-					Keyword::Write => self.parse_write_statement(pos)?,
-					Keyword::Writeline => self.parse_writeline_statement(pos)?,
-					Keyword::If => self.parse_if_statement(pos)?,
-					Keyword::Loop => self.parse_loop_statement(pos)?,
+					Keyword::Write => self.parse_write_statement()?,
+					Keyword::Writeline => self.parse_writeline_statement()?,
+					Keyword::If => self.parse_if_statement()?,
+					Keyword::Loop => self.parse_loop_statement()?,
 					Keyword::Break => if self.in_loop {
+						let Token { token_type: _, pos } = self.tokens.next().unwrap();
 						self.expect_eol()?;
 						Statement::create(StatementType::Break, pos)?
 					} else { return Error::create("Break statements are only allowed inside loops".to_string(), pos) },
 					Keyword::Continue => if self.in_loop { 
+						let Token { token_type: _, pos } = self.tokens.next().unwrap();
 						self.expect_eol()?;
 						Statement::create(StatementType::Continue, pos)?
 					} else { return Error::create("Continue statements are only allowed inside loops".to_string(), pos) },
+					Keyword::Return => if self.in_function { 
+						let Token { token_type: _, pos } = self.tokens.next().unwrap();
+						let expr = self.parse_expression_or_void()?;
+						self.expect_eol()?;
+						Statement::create(StatementType::Return { expr: Box::new(expr) }, pos)?
+					} else { return Error::create("Return statements are only allowed inside functions".to_string(), pos) },
 					_ => return Error::create(format!("Expected statement found {:?}", token.token_type), pos)
 				}
 				_ => return Error::create(format!("Expected statement, found {:?}", token.token_type), pos)
@@ -52,46 +70,28 @@ impl Parser {
 		}
 	}
 
-	fn parse_write_statement(&mut self, pos: SourcePos) -> Result<Statement> {
+	fn parse_write_statement(&mut self) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let expr = self.parse_expression()?;
 		self.expect_eol()?;
 		Statement::create(StatementType::Write { expr: Box::new(expr) }, pos)
 	}
 	
-	fn parse_writeline_statement(&mut self, pos: SourcePos) -> Result<Statement> {
+	fn parse_writeline_statement(&mut self) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let expr = self.parse_expression_or_void()?;
 		self.expect_eol()?;
 		Statement::create(StatementType::Writeline { expr: Box::new(expr) }, pos)
 	}
 
-	fn parse_assigment_statement(&mut self, name: &str, pos: SourcePos) -> Result<Statement> {
-		let mut path: Vec<Expression> = Vec::new();
-		loop {
-			if let Some(token) = self.tokens.next() {
-				match token.token_type {
-					TokenType::Symbol(Symbol::Equals) => break,
-					TokenType::Symbol(Symbol::OpenSqr) => {
-						let index_expr = self.parse_expression()?;
-						self.expect_symbol(Symbol::CloseSqr)?;
-						path.push(index_expr);
-					}
-					TokenType::Symbol(Symbol::Period) => {
-						if let Some(prop_token) = self.tokens.next() {
-							match prop_token.token_type {
-								TokenType::Identifier(name) => path.push(Expression { expr_type: ExpressionType::ValueLiteral { value: Literal::Str(name) }, pos: prop_token.pos }),
-								_ => return Error::create(format!("Expected identifier, found {:?}", prop_token.token_type), prop_token.pos),
-							}
-						} else { return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos); };
-					}
-					_ => return Error::create(format!("Expected Equals or Variable reference, found {:?}", token.token_type), token.pos),
-				}
-			} else { break; }
-		}
+	fn parse_assigment_statement(&mut self, path: Box<Expression>) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let expr = Box::new(self.parse_expression()?);
-		Statement::create(StatementType::Assignment { name: name.to_string(), path, expr }, pos)
+		Statement::create(StatementType::Assignment { path, expr }, pos)
 	}
 
-	fn parse_if_statement(&mut self, pos: SourcePos) -> Result<Statement> {
+	fn parse_if_statement(&mut self) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let condition = self.parse_expression()?;
 		let then_block = self.parse_block()?;
 		let mut else_block: Block = Block::default();
@@ -103,9 +103,8 @@ impl Parser {
 				self.tokens.next();
 				else_block = match self.tokens.peek() {
 					Some(token) if token.token_type == TokenType::Keyword(Keyword::If) => {
-						let pos = token.pos;
 						self.tokens.next();
-						Block::new(vec![self.parse_if_statement(pos)?])	
+						Block::new(vec![self.parse_if_statement()?])	
 					}
 					_ => self.parse_block()?,
 				}
@@ -119,7 +118,8 @@ impl Parser {
 		}, pos)
 	}
 
-	fn parse_loop_statement(&mut self, pos: SourcePos) -> Result<Statement> {
+	fn parse_loop_statement(&mut self) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 
 		let root_loop = if self.in_loop { false } else { self.in_loop = true; true };
 		let block = self.parse_block()?;

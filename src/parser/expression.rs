@@ -84,10 +84,12 @@ pub enum ExpressionType {
 	StringTemplate { expressions: Vec<Expression> },
 	List { expressions: Vec<Expression> },
 	Map { table: HashMap<String, Expression> },
+	FunctionDef { params: Vec<String>, block: Block },
 	Group { expr: Box<Expression> },
 	VariableReference { name: String },
-	ArrayReference { head_expr: Box<Expression>, index_expr: Box<Expression> },
-	MapReference { head_expr: Box<Expression>, prop: String },
+	IndexAccess { head_expr: Box<Expression>, index_expr: Box<Expression> },
+	PropertyAccess { head_expr: Box<Expression>, prop: String },
+	FunctionCall { head_expr: Box<Expression>, args_expr: Vec<Expression> },
 	BinaryOperation {
 		op: BinaryOperator,
 		left_expr: Box<Expression>,
@@ -125,46 +127,69 @@ impl Parser {
 
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
+
 		let mut expr = self.parse_binary_r_expression(0, left_expr)?;
 
 		loop {
 			if let Some(token) = self.tokens.peek() {
 				match token.token_type {
-					TokenType::Symbol(Symbol::OpenSqr) => {
-						self.tokens.next();
-						let index_expr = self.parse_expression()?;
-						self.expect_symbol(Symbol::CloseSqr)?;
-						let pos = index_expr.pos;
-						expr = Expression::new(
-							ExpressionType::ArrayReference {
-								head_expr: Box::new(expr), 
-								index_expr: Box::new(index_expr)
-							},
-							pos,
-						)
-					}
-					TokenType::Symbol(Symbol::Period) => {
-						self.tokens.next();
-						match self.tokens.next() {
-							Some(Token { token_type: TokenType::Identifier(name), pos }) => {
-								expr = Expression::new(
-									ExpressionType::MapReference {
-										head_expr: Box::new(expr),
-										prop: name,
-									},
-									pos,
-								)
-							}
-							Some(token) => return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos),
-							None => return Error::create("Expected identifier, found EOF".to_string(), SourcePos::new(0, 0)),
-						}
-					}
+					TokenType::Symbol(Symbol::OpenSqr) => expr = self.parse_index_access(expr)?,
+					TokenType::Symbol(Symbol::Period) => expr = self.parse_property_access(expr)?,
 					_ => break,
 				}
 			} else { break; }
 		}
 
 		Ok(expr)
+	}
+
+	fn parse_index_access(&mut self, head: Expression) -> Result<Expression> {
+		self.tokens.next();
+		let index_expr = self.parse_expression()?;
+		self.expect_symbol(Symbol::CloseSqr)?;
+		let pos = index_expr.pos;
+		Expression::create(
+			ExpressionType::IndexAccess {
+				head_expr: Box::new(head), 
+				index_expr: Box::new(index_expr)
+			},
+			pos,
+		)
+	}
+
+	fn parse_property_access(&mut self, head: Expression) -> Result<Expression> {
+		self.tokens.next();
+		match self.tokens.next() {
+			Some(Token { token_type: TokenType::Identifier(name), pos }) => {
+				Expression::create(
+					ExpressionType::PropertyAccess {
+						head_expr: Box::new(head),
+						prop: name,
+					},
+					pos,
+				)
+			}
+			Some(token) => Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos),
+			None => Error::create("Expected identifier, found EOF".to_string(), SourcePos::new(0, 0)),
+		}
+	}
+
+	pub fn parse_function_call(&mut self, head: Expression) -> Result<(Box<Expression>, Vec<Expression>)> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
+		let mut args: Vec<Expression> = Vec::new();
+
+		loop {
+			if let Some(_) = self.tokens.peek() {
+				// We create a dummy parser so that we can check that the next value is an expression without consuming our tokens
+				let mut dummy_parser = Parser::new(self.tokens.clone());
+				match dummy_parser.parse_expression() {
+					Ok(_) => args.push(self.parse_expression()?),
+					Err(_) => return Ok((Box::new(head), args)),
+				}
+			} else {
+				return Error::create("Expected Function Call, found EOF".to_string(), pos);
+			}
+		}
 	}
 
 	fn parse_expression_no_binary(&mut self) -> Result<Expression> {
@@ -178,6 +203,7 @@ impl Parser {
 					match keyword {
 						Keyword::Read => Ok(ExpressionType::Read),
 						Keyword::ReadNum => Ok(ExpressionType::ReadNum),
+						Keyword::Function => self.parse_function_definition(),
 						_ => Error::create(format!("Expected expression, found {:?}", keyword), token.pos)
 					}
 				}
@@ -193,10 +219,25 @@ impl Parser {
 				TokenType::Template(tokens) => self.parse_template_string(tokens),
 				_ => Error::create(String::from("Unable to parse expression"), token.pos)
 			};
+
 			match res {
-				Ok(expr_type) => Expression::create(expr_type, token.pos),
+				Ok(expr_type) => {
+					let mut expr = Expression::new(expr_type, token.pos);
+					if let Some(token) = self.tokens.peek() {
+						let pos = token.pos;
+						match token.token_type {
+							TokenType::Symbol(Symbol::Exclam) => {
+								let (head_expr, args_expr) = self.parse_function_call(expr)?;
+								expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
+							}
+							_ => (),
+						}
+					}
+					Ok(expr)
+				},
 				Err(e) => Err(e),
 			}
+
 		} else {
 			Error::create(String::from("Tried to parse expression at eof"), SourcePos { line: 0, column: 0 })
 		}
@@ -282,6 +323,31 @@ impl Parser {
 					}
 				}
 				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
+			}
+		}
+	}
+
+	fn parse_function_definition(&mut self) -> Result<ExpressionType> {
+		let mut params: Vec<String> = Vec::new();
+
+		loop {
+			if let Some(token) = self.tokens.peek() {
+				let pos = token.pos;
+				match token.token_type.clone() {
+					TokenType::EOL | TokenType::Symbol(Symbol::OpenBracket) => {
+						let root = if self.in_function { false } else { self.in_function = true; true };
+						let block = self.parse_block()?;
+						if root { self.in_function = false; }
+						return Ok(ExpressionType::FunctionDef { params, block });
+					}
+					TokenType::Identifier(name) => {
+						self.tokens.next();
+						params.push(name);
+					}
+					_ => return Error::create(format!("Expected Identifier or Block, found {:?}", token.token_type), pos),
+				}
+			} else {
+				return Error::create("Expected Function Definition, found EOF".to_string(), SourcePos::default())
 			}
 		}
 	}
