@@ -7,7 +7,7 @@ use crate::{*, parser::expression::*, parser::expression::Literal};
 
 use super::{Interpreter, value::{Value, function::Function}};
 
-fn unwrap_or_error(res: std::result::Result<Value, String>, pos: SourcePos) -> Result<Value> {
+pub fn unwrap_or_error(res: std::result::Result<Value, String>, pos: SourcePos) -> Result<Value> {
 	match res {
 		Ok(v) => Ok(v),
 		Err(e) => Error::create(e, pos),

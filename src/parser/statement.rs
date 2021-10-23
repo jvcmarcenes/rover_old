@@ -3,10 +3,15 @@ use crate::*;
 use crate::parser::{*, expression::*, block::*};
 
 #[derive(Debug, Clone)]
+pub enum AssignmentOperator {
+	Equals, Increment, Decrement
+}
+
+#[derive(Debug, Clone)]
 pub enum StatementType {
 	Write { expr: Box<Expression> },
 	Writeline { expr: Box<Expression> },
-	Assignment { path: Box<Expression>, expr: Box<Expression> },
+	Assignment { op: AssignmentOperator, path: Box<Expression>, expr: Box<Expression> },
 	If { condition: Box<Expression>, then_block: Block, else_block: Block },
 	Loop { block: Block }, Break, Continue,
 	FunctionCall { head_expr: Box<Expression>, args_expr: Vec<Expression> },
@@ -86,11 +91,16 @@ impl Parser {
 	}
 
 	fn parse_assigment_statement(&mut self, path: Box<Expression>) -> Result<Statement> {
-		let Token { token_type: _, pos } = self.expect_symbol(Symbol::Equals)?;
+		let Token { token_type, pos } = self.expect_any_symbol(vec![Symbol::Equals, Symbol::PlusEquals, Symbol::MinusEquals])?;
+		let op = match token_type {
+			TokenType::Symbol(Symbol::Equals) => AssignmentOperator::Equals,
+			TokenType::Symbol(Symbol::PlusEquals) => AssignmentOperator::Increment,
+			TokenType::Symbol(Symbol::MinusEquals) => AssignmentOperator::Decrement,
+			_ => panic!("expect_any should guarantee that this never panics."),
+		};
 		let expr = Box::new(self.parse_expression()?);
 		self.expect_eol()?;
-		// println!("{:?}", expr);
-		Statement::create(StatementType::Assignment { path, expr }, pos)
+		Statement::create(StatementType::Assignment { op, path, expr }, pos)
 	}
 
 	fn parse_if_statement(&mut self) -> Result<Statement> {

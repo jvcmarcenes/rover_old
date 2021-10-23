@@ -103,6 +103,11 @@ impl Add for Value {
 		match (&self, &rhs) {
 			(Self::Str(_), _) | (_, Self::Str(_)) => Ok(Self::Str(format!("{}{}", self, rhs))),
 			(Self::Num(_), Self::Num(_)) => Self::math_op(|a, b| a + b, self, rhs),
+			(Self::List(list), _) => {
+				let mut res = list.clone();
+				res.push(rhs);
+				Ok(Value::List(res))
+			}
 			_ => Err("Invalid operator for type".to_string()),
 		}
 	}

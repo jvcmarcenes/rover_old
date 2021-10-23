@@ -28,25 +28,17 @@ impl Parser {
 
 	pub fn expect(&mut self, expected_type: TokenType) -> Result<Token> {
 		match self.tokens.peek() {
-			Some(token) => {
-				if token.token_type == expected_type {
-					let token =  self.tokens.next().unwrap();
-					Ok(token)
-				} else { Error::create(format!("Expected {:?}, found {:?}", expected_type, token.token_type), token.pos) }
-			}
-			_ => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos::new(0, 0))
+			Some(token) if token.token_type == expected_type => Ok(self.tokens.next().unwrap()),
+			Some(token) => Error::create(format!("Expected {:?}, found {:?}", expected_type, token.token_type), token.pos),
+			None => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos::new(0, 0)),
 		}
 	}
 
-	pub fn expect_any(&mut self, expected_types: Vec<TokenType>) -> Result<()> {
+	pub fn expect_any(&mut self, expected_types: Vec<TokenType>) -> Result<Token> {
 		match self.tokens.peek() {
-			Some(token) => {
-				if expected_types.contains(&token.token_type) {
-					self.tokens.next();
-					Ok(())
-				} else { Error::create(format!("Expected any of {:?}, found {:?}", expected_types, token.token_type), token.pos) }
-			}
-			_ => Error::create(format!("Expected any of {:?}, found EOF", expected_types), SourcePos::new(0, 0))
+			Some(token) if expected_types.contains(&token.token_type) => Ok(self.tokens.next().unwrap()),
+			Some(token) => Error::create(format!("Expected any of {:?}, found {:?}", expected_types, token.token_type), token.pos),
+			_ => Error::create(format!("Expected any of {:?}, found EOF", expected_types), SourcePos::new(0, 0)),
 		}
 	}
 
@@ -59,9 +51,9 @@ impl Parser {
 		}
 	}
 
-	// pub fn expect_any_symbol(&mut self, expected_symbols: Vec<Symbol>) -> Result<()> {
-	// 	self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
-	// }
+	pub fn expect_any_symbol(&mut self, expected_symbols: Vec<Symbol>) -> Result<Token> {
+		self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
+	}
 
 	pub fn optional(&mut self, optional_token: TokenType) -> bool {
 		match self.tokens.peek() {

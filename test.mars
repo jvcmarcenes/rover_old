@@ -1,4 +1,6 @@
 
-x = 0
+lista = [0, 1, 2]
 
-writeline x
+lista += 9
+
+writeline lista
