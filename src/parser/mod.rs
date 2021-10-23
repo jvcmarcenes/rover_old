@@ -26,12 +26,12 @@ impl Parser {
 		}
 	}
 
-	pub fn expect(&mut self, expected_type: TokenType) -> Result<()> {
+	pub fn expect(&mut self, expected_type: TokenType) -> Result<Token> {
 		match self.tokens.peek() {
 			Some(token) => {
 				if token.token_type == expected_type {
-					self.tokens.next();
-					Ok(())
+					let token =  self.tokens.next().unwrap();
+					Ok(token)
 				} else { Error::create(format!("Expected {:?}, found {:?}", expected_type, token.token_type), token.pos) }
 			}
 			_ => Error::create(format!("Expected {:?}, found EOF", expected_type), SourcePos::new(0, 0))
@@ -50,12 +50,12 @@ impl Parser {
 		}
 	}
 
-	pub fn expect_symbol(&mut self, expected_symbol: Symbol) -> Result<()> { self.expect(TokenType::Symbol(expected_symbol)) }
+	pub fn expect_symbol(&mut self, expected_symbol: Symbol) -> Result<Token> { self.expect(TokenType::Symbol(expected_symbol)) }
 
 	pub fn expect_eol(&mut self) -> Result<()> { 
 		match self.tokens.peek() {
 			Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseBracket) => Ok(()),
-			_ => self.expect(TokenType::EOL)
+			_ => self.expect(TokenType::EOL).map(|_|())
 		}
 	}
 

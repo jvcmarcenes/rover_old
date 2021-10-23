@@ -86,7 +86,7 @@ impl Parser {
 	}
 
 	fn parse_assigment_statement(&mut self, path: Box<Expression>) -> Result<Statement> {
-		let Token { token_type: _, pos } = self.tokens.next().unwrap();
+		let Token { token_type: _, pos } = self.expect_symbol(Symbol::Equals)?;
 		let expr = Box::new(self.parse_expression()?);
 		self.expect_eol()?;
 		// println!("{:?}", expr);

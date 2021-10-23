@@ -40,23 +40,25 @@ macro_rules! unwrap_or_exit {
 		match $f {
 			Ok(a) => a,
 			Err(e) => {
-				println!("{} Error [{}:{}:{}]: {}", $origin, $path, e.pos.line, e.pos.column, e.message);
+				println!("{} {}: {}", 
+					ansi_term::Colour::Red.paint(format!("{} error", $origin)),
+					format!("[{}:{}:{}]", $path, e.pos.line, e.pos.column),
+					e.message
+				);
 				process::exit(0);
 			}
 		}
 	};
 }
 
-// pub(crate) use unwrap_or_exit;
-
 fn get_ast(path: &str) -> Block {
 	let lexer = Lexer::from_file(path).unwrap();
-	let tokens = lexer.map(|token| unwrap_or_exit!(token, "Lexing", path)).collect::<Vec<_>>();
+	let tokens = lexer.map(|token| unwrap_or_exit!(token, "lexing", path)).collect::<Vec<_>>();
 
 	// for token in tokens.clone() { println!("{:?}", token); }
 
 	let mut parser = Parser::new(tokens.into_iter().peekable());
-	unwrap_or_exit!(parser.parse_program(), "Parsing", path)
+	unwrap_or_exit!(parser.parse_program(), "parsing", path)
 }
 
 #[derive(StructOpt)]
@@ -66,6 +68,8 @@ struct Cli {
 }
 
 fn main() {
+	ansi_term::enable_ansi_support().unwrap();
+
 	let args = Cli::from_args();
 	let path = &args.path.into_os_string().into_string().unwrap();
 
@@ -75,5 +79,5 @@ fn main() {
 
 	let result = Interpreter::new(program).run();
 	
-	unwrap_or_exit!(result, "Execution", path);
+	unwrap_or_exit!(result, "runtime", path);
 }
