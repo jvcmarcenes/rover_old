@@ -79,6 +79,7 @@ pub fn is_binary_symbol(s: &Symbol) -> bool {
 pub enum Keyword {
 	True, False,
 	Write, Writeline, Read, ReadNum,
+	Random,
 	If, Else,
 	Loop, Break, Continue,
 	Function, Return,
@@ -100,6 +101,7 @@ impl Keyword {
 			"continue" => Keyword::Continue,
 			"function" => Keyword::Function,
 			"return" => Keyword::Return,
+			"random" => Keyword::Random,
 			_ => return None,
 		};
 		Some(keyword)

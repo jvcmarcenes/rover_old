@@ -32,6 +32,7 @@ impl Interpreter {
 			ExpressionType::StringTemplate { expressions } => self.evaluate_string_template(expressions),
 			ExpressionType::FunctionDef { params, block } => self.evaluate_function_def(params, block),
 			ExpressionType::FunctionCall { head_expr, args_expr } => self.evaluate_function_call(&head_expr, args_expr),
+			ExpressionType::Random => Ok(Value::Num(rand::random())),
 		}
 	}
 

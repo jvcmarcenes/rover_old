@@ -99,7 +99,7 @@ pub enum ExpressionType {
 		op: UnaryOperator,
 		expr: Box<Expression>
 	},
-	Read, ReadNum
+	Read, ReadNum, Random,
 }
 
 #[derive(Debug, Clone)]
@@ -127,25 +127,7 @@ impl Parser {
 
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
-
-		let mut expr = self.parse_binary_r_expression(0, left_expr)?;
-
-		loop {
-			if let Some(token) = self.tokens.peek() {
-				let pos = token.pos;
-				match token.token_type {
-					TokenType::Symbol(Symbol::OpenSqr) => expr = self.parse_index_access(expr)?,
-					TokenType::Symbol(Symbol::Period) => expr = self.parse_property_access(expr)?,
-					TokenType::Symbol(Symbol::Exclam) => {
-						let (head_expr, args_expr) = self.parse_function_call(expr)?;
-						expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
-					},
-					_ => break,
-				}
-			} else { break; }
-		}
-
-		Ok(expr)
+		self.parse_binary_r_expression(0, left_expr)
 	}
 
 	fn parse_index_access(&mut self, head: Expression) -> Result<Expression> {
@@ -209,6 +191,7 @@ impl Parser {
 						Keyword::Read => Ok(ExpressionType::Read),
 						Keyword::ReadNum => Ok(ExpressionType::ReadNum),
 						Keyword::Function => self.parse_function_definition(),
+						Keyword::Random => Ok(ExpressionType::Random),
 						_ => Error::create(format!("Expected expression, found {:?}", keyword), token.pos)
 					}
 				}
@@ -228,15 +211,19 @@ impl Parser {
 			match res {
 				Ok(expr_type) => {
 					let mut expr = Expression::new(expr_type, token.pos);
-					if let Some(token) = self.tokens.peek() {
-						let pos = token.pos;
-						match token.token_type {
-							TokenType::Symbol(Symbol::Exclam) => {
-								let (head_expr, args_expr) = self.parse_function_call(expr)?;
-								expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
+					loop {
+						if let Some(token) = self.tokens.peek() {
+							let pos = token.pos;
+							match token.token_type {
+								TokenType::Symbol(Symbol::OpenSqr) => expr = self.parse_index_access(expr)?,
+								TokenType::Symbol(Symbol::Period) => expr = self.parse_property_access(expr)?,
+								TokenType::Symbol(Symbol::Exclam) => {
+									let (head_expr, args_expr) = self.parse_function_call(expr)?;
+									expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
+								},
+								_ => break,
 							}
-							_ => (),
-						}
+						} else { break; }
 					}
 					Ok(expr)
 				},

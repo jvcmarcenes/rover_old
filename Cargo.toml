@@ -8,5 +8,6 @@ description = "marslang to LLVM compiler"
 license = "MIT"
 
 [dependencies]
+rand = "0.8.4"
 text_io = "0.1.9"
 structopt = "0.3.13"

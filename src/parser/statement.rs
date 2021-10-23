@@ -32,6 +32,7 @@ impl Parser {
 			let statement = match token.token_type {
 				TokenType::Identifier(_) | TokenType::Symbol(Symbol::OpenPar) => {
 					let expr = self.parse_expression()?;
+					
 					match expr.expr_type {
 						ExpressionType::FunctionCall { head_expr, args_expr } => {
 							Statement::new(StatementType::FunctionCall { head_expr, args_expr }, expr.pos)
@@ -87,6 +88,8 @@ impl Parser {
 	fn parse_assigment_statement(&mut self, path: Box<Expression>) -> Result<Statement> {
 		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let expr = Box::new(self.parse_expression()?);
+		self.expect_eol()?;
+		// println!("{:?}", expr);
 		Statement::create(StatementType::Assignment { path, expr }, pos)
 	}
 
