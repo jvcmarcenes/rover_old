@@ -30,7 +30,7 @@ impl Parser {
 		if let Some(token) = self.tokens.peek() {
 			let pos = token.pos;
 			let statement = match token.token_type {
-				TokenType::Identifier(_) => {
+				TokenType::Identifier(_) | TokenType::Symbol(Symbol::OpenPar) => {
 					let expr = self.parse_expression()?;
 					match expr.expr_type {
 						ExpressionType::FunctionCall { head_expr, args_expr } => {

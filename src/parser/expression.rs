@@ -132,9 +132,14 @@ impl Parser {
 
 		loop {
 			if let Some(token) = self.tokens.peek() {
+				let pos = token.pos;
 				match token.token_type {
 					TokenType::Symbol(Symbol::OpenSqr) => expr = self.parse_index_access(expr)?,
 					TokenType::Symbol(Symbol::Period) => expr = self.parse_property_access(expr)?,
+					TokenType::Symbol(Symbol::Exclam) => {
+						let (head_expr, args_expr) = self.parse_function_call(expr)?;
+						expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
+					},
 					_ => break,
 				}
 			} else { break; }
