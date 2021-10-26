@@ -25,7 +25,7 @@ pub struct Statement {
 }
 
 impl Statement {
-	fn new(statement_type: StatementType, pos: SourcePos) -> Self { Self { statement_type, pos } }
+	pub fn new(statement_type: StatementType, pos: SourcePos) -> Self { Self { statement_type, pos } }
 	fn create(statement_type: StatementType, pos: SourcePos) -> Result<Self> { Ok(Self::new(statement_type, pos)) }
 }
 
@@ -116,7 +116,6 @@ impl Parser {
 				self.tokens.next();
 				else_block = match self.tokens.peek() {
 					Some(token) if token.token_type == TokenType::Keyword(Keyword::If) => {
-						self.tokens.next();
 						Block::new(vec![self.parse_if_statement()?])	
 					}
 					_ => self.parse_block()?,

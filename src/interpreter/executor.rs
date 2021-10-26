@@ -61,7 +61,7 @@ impl Interpreter {
 					head = head_expr.clone();
 					let mut map = self.evaluate_to_map(&head_expr)?;
 					map.insert(prop, value);
-					value = Value::Map(map);
+					value = Value::Map(map).into();
 				}
 				ExpressionType::IndexAccess { head_expr, index_expr } => {
 					head = head_expr.clone();
@@ -69,7 +69,7 @@ impl Interpreter {
 					let index = self.evaluate_to_num(&index_expr)? as usize;
 					list.remove(index);
 					list.insert(index, value);
-					value = Value::List(list);
+					value = Value::List(list).into();
 				}
 				_ => return Error::create(format!("Expected Identifier, found {:?}", head.expr_type), head.pos),
 			}

@@ -12,8 +12,8 @@ use self::value::*;
 
 #[derive(Debug, Clone)]
 pub struct SymbolTable {
-	map: HashMap<String, Value>,
-	parent: Vec<HashMap<String, Value>>,
+	map: HashMap<String, ValueObject>,
+	parent: Vec<HashMap<String, ValueObject>>,
 }
 
 impl SymbolTable {
@@ -24,11 +24,11 @@ impl SymbolTable {
 		}
 	}
 
-	pub fn insert(&mut self, key: String, value: Value) {
+	pub fn insert(&mut self, key: String, value: ValueObject) {
 		self.map.insert(key, value);
 	}
 
-	pub fn get(&self, key: &str) -> Option<&Value> {
+	pub fn get(&self, key: &str) -> Option<&ValueObject> {
 		match self.map.get(key) {
 			Some(value) => Some(value),
 			None => {
@@ -43,7 +43,7 @@ impl SymbolTable {
 		}
 	}
 
-	pub fn push(&mut self, map: HashMap<String, Value>) {
+	pub fn push(&mut self, map: HashMap<String, ValueObject>) {
 		self.parent.push(self.map.clone());
 		self.map = map;
 	}
@@ -69,7 +69,7 @@ pub enum Message {
 	None,
 	Break,
 	Continue,
-	Return(Value),
+	Return(ValueObject),
 }
 
 impl Interpreter {
