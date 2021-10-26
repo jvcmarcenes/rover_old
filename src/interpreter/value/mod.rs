@@ -119,13 +119,13 @@ impl Add for ValueObject {
 
 	fn add(self, rhs: Self) -> Self::Output {
 		match (self.value.clone(), rhs.value.clone()) {
-			(Value::Str(_), _) | (_, Value::Str(_)) => Ok(ValueObject::new(Value::Str(format!("{}{}", self, rhs)))),
-			(Value::Num(_), Value::Num(_)) => Self::math_op(|a, b| a + b, &self, &rhs),
 			(Value::List(list), _) => {
 				let mut res = list.clone();
 				res.push(rhs);
 				Ok(ValueObject::new(Value::List(res)))
 			}
+			(Value::Str(_), _) | (_, Value::Str(_)) => Ok(ValueObject::new(Value::Str(format!("{}{}", self, rhs)))),
+			(Value::Num(_), Value::Num(_)) => Self::math_op(|a, b| a + b, &self, &rhs),
 			_ => Err("Invalid operator for type".to_string()),
 		}
 	}

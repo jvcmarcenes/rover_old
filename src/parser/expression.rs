@@ -125,6 +125,11 @@ impl Parser {
 		}
 	}
 
+	pub fn can_parse_expression(&self) -> bool {
+		let mut dummy_parser = Parser::new(self.tokens.clone());
+		dummy_parser.parse_expression().is_ok()
+	}
+
 	pub fn parse_expression(&mut self) -> Result<Expression> {
 		let left_expr = self.parse_expression_no_binary()?;
 		self.parse_binary_r_expression(0, left_expr)
@@ -166,12 +171,11 @@ impl Parser {
 		let mut args: Vec<Expression> = Vec::new();
 
 		loop {
-			if let Some(_) = self.tokens.peek() {
-				// We create a dummy parser so that we can check that the next value is an expression without consuming our tokens
-				let mut dummy_parser = Parser::new(self.tokens.clone());
-				match dummy_parser.parse_expression() {
-					Ok(_) => args.push(self.parse_expression()?),
-					Err(_) => return Ok((Box::new(head), args)),
+			if self.tokens.peek().is_some() {
+				if self.can_parse_expression() {
+					args.push(self.parse_expression()?)
+				} else {
+					return Ok((Box::new(head), args))
 				}
 			} else {
 				return Error::create("Expected Function Call, found EOF".to_string(), pos);

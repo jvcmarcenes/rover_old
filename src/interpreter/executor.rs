@@ -65,11 +65,28 @@ impl Interpreter {
 				}
 				ExpressionType::IndexAccess { head_expr, index_expr } => {
 					head = head_expr.clone();
-					let mut list = self.evaluate_to_list(&head_expr)?;
-					let index = self.evaluate_to_num(&index_expr)? as usize;
-					list.remove(index);
-					list.insert(index, value);
-					value = Value::List(list).into();
+					let root = self.evaluate(&head_expr)?;
+					match root.value {
+						Value::List(mut list) => {
+							let index = self.evaluate_to_num(&index_expr)? as usize;
+							list.remove(index);
+							list.insert(index, value);
+							value = Value::List(list).into();
+						}
+						Value::Str(mut str) => {
+							let index = self.evaluate_to_num(&index_expr)? as usize;
+							str.remove(index);
+							str.insert_str(index, &value.to_string());
+							value = Value::Str(str).into();
+						}
+						Value::Map(mut map) => {
+							let prop = self.evaluate_to_str(&index_expr)?;
+							map.remove(&prop);
+							map.insert(prop, value);
+							value = Value::Map(map).into();
+						}
+						_ => return Error::create("Cannot index value".to_string(), head_expr.pos),
+					}
 				}
 				_ => return Error::create(format!("Expected Identifier, found {:?}", head.expr_type), head.pos),
 			}

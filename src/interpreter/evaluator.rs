@@ -40,6 +40,12 @@ impl Interpreter {
 	pub fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<ValueObject>> { self.evaluate(expr)?.to_list(expr.pos) }
 	pub fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, ValueObject>> { self.evaluate(expr)?.to_map(expr.pos) }
 	pub fn evaluate_to_function(&mut self, expr: &Box<Expression>) -> Result<Function> { self.evaluate(expr)?.to_function(expr.pos) }
+	pub fn evaluate_to_str(&mut self, expr: &Box<Expression>) -> Result<String> { 
+		match self.evaluate(expr)?.value { 
+			Value::Str(s) => Ok(s),
+			_ => Error::create("Expected a string value".to_string(), expr.pos)
+		}
+	}
 
 	fn evaluate_literal(&mut self, lit: Literal) -> Result<ValueObject> {
 		let value = match lit {
@@ -59,7 +65,6 @@ impl Interpreter {
 	}
 
 	fn evaluate_index_access(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<ValueObject> {
-		
 		let acc = self.evaluate(index_expr)?;
 		match acc.value {
 			Value::Str(prop) => self.evaluate_property_access(head_expr, &prop),
