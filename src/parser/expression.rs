@@ -118,7 +118,6 @@ impl Parser {
 		match self.tokens.peek() {
 			Some(token) if [TokenType::EOL, TokenType::Symbol(Symbol::CloseBracket)].contains(&token.token_type) => {
 				let pos = token.pos;
-				self.tokens.next();
 				Expression::create(ExpressionType::ValueLiteral { value: Literal::Void }, pos) 
 			}
 			_ => self.parse_expression(),
