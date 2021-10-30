@@ -42,7 +42,7 @@ macro_rules! unwrap_or_exit {
 		match $f {
 			Ok(a) => a,
 			Err(e) => {
-				println!("{} {}: {}", 
+				eprintln!("{} {}: {}", 
 					ansi_term::Colour::Red.paint(format!("{} error", $origin)),
 					format!("[{}:{}:{}]", $path, e.pos.line, e.pos.column),
 					e.message
@@ -56,7 +56,7 @@ macro_rules! unwrap_or_exit {
 fn get_ast(path: &str) -> Block {
 
 	let lexer = Lexer::from_file(path).unwrap_or_else(|e| {
-		println!("{}: {}", ansi_term::Color::Red.paint("system error"), e.to_string(), );
+		eprintln!("{}: {}", ansi_term::Color::Red.paint("system error"), e.to_string());
 		process::exit(0);
 	});
 

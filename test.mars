@@ -1,2 +1,12 @@
 
+write 'Your name: '
 
+name = read
+
+writeline 'Hello #{name}'
+
+write 'Enter a number: '
+
+n = read.num!
+
+writeline '#{n}² = #{n * n}'

@@ -194,7 +194,7 @@ impl Interpreter {
 
 	fn evaluate_bin_operation(&mut self, op: BinaryOperator, left_expr: &Box<Expression>, right_expr: &Box<Expression>) -> Result<ValueObject> {
 		let lhs = self.evaluate(left_expr)?;
-		let rhs = self.evaluate(right_expr)?;
+		let rhs = self.evaluate(right_expr)?; // TODO if the operation is boolean AND or OR, need to delay evaluating the expression
 		let pos = right_expr.pos;
 		match op {
 			BinaryOperator::Add => unwrap_or_error(lhs + rhs, pos),
@@ -222,7 +222,7 @@ impl Interpreter {
 	}
 
 	fn evaluate_readnum(&mut self, pos: SourcePos) -> Result<ValueObject> {
-		let num_res: std::result::Result<f32, text_io::Error> = try_read!("{}\r\n"); // I believe this won't work on other platforms
+		let num_res: std::result::Result<f32, text_io::Error> = try_read!(); // I believe this won't work on other platforms
 		match num_res {
 			Ok(num) => Ok(Value::Num(num).into()),
 			Err(_) => Error::create("Invalid console input, expected a number".to_string(), pos),

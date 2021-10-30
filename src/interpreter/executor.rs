@@ -1,4 +1,6 @@
 
+use std::io::Write as _;
+
 use crate::{Error, Result, SourcePos, interpreter::value::Value, parser::{block::Block, expression::{Expression, ExpressionType}, statement::{AssignmentOperator, Statement, StatementType}}};
 
 use super::{Interpreter, Message, evaluator::unwrap_or_error};
@@ -26,12 +28,13 @@ impl Interpreter {
 	fn execute_write(&mut self, expr: &Box<Expression>) -> Result<Message> {
 		let value = self.evaluate(expr)?;
 		print!("{}", value);
+		std::io::stdout().flush().unwrap();
 		Ok(Message::None)
 	}
 
 	fn execute_writeline(&mut self, expr: &Box<Expression>) -> Result<Message> {
 		let value = self.evaluate(expr)?;
-		print!("{}\n", value);
+		println!("{}", value);
 		Ok(Message::None)
 	}
 
