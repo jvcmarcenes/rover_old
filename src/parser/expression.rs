@@ -168,16 +168,25 @@ impl Parser {
 	pub fn parse_function_call(&mut self, head: Expression) -> Result<(Box<Expression>, Vec<Expression>)> {
 		let Token { token_type: _, pos } = self.tokens.next().unwrap();
 		let mut args: Vec<Expression> = Vec::new();
-
+		
+		self.skip_new_lines();
 		loop {
-			if self.tokens.peek().is_some() {
-				if self.can_parse_expression() {
-					args.push(self.parse_expression()?)
-				} else {
+			match self.tokens.peek() {
+				Some(token) if token.token_type == TokenType::Symbol(Symbol::ClosePar) => {
+					self.tokens.next();
 					return Ok((Box::new(head), args))
 				}
-			} else {
-				return Error::create("Expected Function Call, found EOF".to_string(), pos);
+				Some(_) if args.len() == 0 => args.push(self.parse_expression()?),
+				Some(_) => {
+					self.expect_symbol(Symbol::Comma)?;
+					self.skip_new_lines();
+					match self.tokens.peek() {
+						Some(token) if token.token_type == TokenType::Symbol(Symbol::ClosePar) => continue,
+						Some(_) => args.push(self.parse_expression()?),
+						None => return Error::create("Expected expression, found EOF".to_string(), pos),
+					}
+				}
+				None => return Error::create("Expected expression, found EOF".to_string(), pos),
 			}
 		}
 	}
@@ -220,7 +229,7 @@ impl Parser {
 							match token.token_type {
 								TokenType::Symbol(Symbol::OpenSqr) => expr = self.parse_index_access(expr)?,
 								TokenType::Symbol(Symbol::Period) => expr = self.parse_property_access(expr)?,
-								TokenType::Symbol(Symbol::Exclam) => {
+								TokenType::Symbol(Symbol::OpenPar) => {
 									let (head_expr, args_expr) = self.parse_function_call(expr)?;
 									expr = Expression::new(ExpressionType::FunctionCall { head_expr, args_expr }, pos);
 								},
@@ -323,26 +332,38 @@ impl Parser {
 	}
 
 	fn parse_function_definition(&mut self) -> Result<ExpressionType> {
+		self.expect_symbol(Symbol::OpenPar)?;
+		self.skip_new_lines();
+
 		let mut params: Vec<String> = Vec::new();
 
 		loop {
-			if let Some(token) = self.tokens.peek() {
-				let pos = token.pos;
-				match token.token_type.clone() {
-					TokenType::EOL | TokenType::Symbol(Symbol::OpenBracket) => {
-						let root = if self.in_function { false } else { self.in_function = true; true };
-						let block = self.parse_block()?;
-						if root { self.in_function = false; }
-						return Ok(ExpressionType::FunctionDef { params, block });
-					}
-					TokenType::Identifier(name) => {
-						self.tokens.next();
-						params.push(name);
-					}
-					_ => return Error::create(format!("Expected Identifier or Block, found {:?}", token.token_type), pos),
+			match self.tokens.peek() {
+				Some(token) if token.token_type == TokenType::Symbol(Symbol::ClosePar) => {
+					self.tokens.next();
+					let root = if self.in_function { false } else { self.in_function = true; true };
+					let block = self.parse_block()?;
+					if root { self.in_function = false; }
+					return Ok(ExpressionType::FunctionDef { params, block });
 				}
-			} else {
-				return Error::create("Expected Function Definition, found EOF".to_string(), SourcePos::default())
+				Some(Token { token_type: TokenType::Identifier(name), pos: _ }) if params.len() == 0 => {
+					params.push(name.to_string());
+					self.tokens.next();
+				}
+				Some(_) => {
+					self.expect_symbol(Symbol::Comma)?;
+					self.skip_new_lines();
+					match self.tokens.peek() {
+						Some(token) if token.token_type == TokenType::Symbol(Symbol::ClosePar) => continue,
+						Some(Token { token_type: TokenType::Identifier(name), pos: _ }) => {
+							params.push(name.to_string());
+							self.tokens.next();
+						}
+						Some(token) => return Error::create(format!("Expexted Identifier, found {:?}", token), token.pos),
+						None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
+					}
+				}
+				None => return Error::create("Expected expression, found EOF".to_string(), SourcePos::new(0, 0)),
 			}
 		}
 	}

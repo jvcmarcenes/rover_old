@@ -1,26 +1,30 @@
 
-let users = []
-
-let add_user = function name age {
-	users += {
-		id = random
-		name = name
-		age = age
-	}
-}
-
-let print_users = function {
+let iter = function(arr, f) {
 	let i = 0
 	loop {
-		if i >= users.size { break }
-		let user = users[i]
-		writeline 'user: #{user.id}, name: #{user.name}, age: #{user.age}'
+		if i >= arr.size { break }
+		f(arr[i])
 		i += 1
 	}
 }
 
-add_user! 'John' 23
-add_user! 'Ana' 19
-add_user! 'Mike' 27
+let map = function(arr, f) {
+	let i = 0
+	let ret = []
+	loop {
+		if i >= arr.size { return ret }
+		ret += f(arr[i])
+		i += 1
+	}
+}
 
-print_users!
+let print_arr = function(arr) {
+	iter(arr, function(n) { write '#{n}, ' })
+	writeline
+}
+
+let list = [0, 1, 2, 3, 4, 5]
+let doubled = map(list, function(n) { return n * 2 })
+
+print_arr(list)
+print_arr(doubled)
