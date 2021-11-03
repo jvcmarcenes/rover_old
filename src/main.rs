@@ -78,13 +78,17 @@ fn main() {
 	ansi_term::enable_ansi_support().unwrap();
 
 	let args = Rover::from_args();
-	let path = args.path.into_os_string().into_string().unwrap();
+	// let path = args.path.into_os_string().into_string().unwrap();
+
+	let mut path_anc = args.path.ancestors().map(|p| p.as_os_str().to_str().unwrap());
+	let path = path_anc.next().unwrap();
+	let dir = path_anc.next().map_or("./", |s| if s.is_empty() { "./" } else { s });
 
 	let program = get_ast(&path);
 
 	// println!("{:#?}", program);
 
-	let result = Interpreter::new(program).run();
+	let result = Interpreter::new(program, dir).run();
 	
 	unwrap_or_exit!(result, "runtime", path);
 }

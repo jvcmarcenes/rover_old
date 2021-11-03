@@ -34,6 +34,14 @@ impl Parser {
 		}
 	}
 
+	pub fn expect_pred(&mut self, expected: &str, pred: fn(&TokenType) -> bool) -> Result<Token> {
+		match self.tokens.peek() {
+			Some(Token { token_type, pos: _ }) if pred(token_type) => Ok(self.tokens.next().unwrap()),
+			Some(token) => Error::create(format!("Expected {:?}, found {:?}", expected, token.token_type), token.pos),
+			None => Error::create(format!("Expected {:?}, found EOF", expected), SourcePos::new(0, 0)),
+		}
+	}
+
 	pub fn expect_any(&mut self, expected_types: Vec<TokenType>) -> Result<Token> {
 		match self.tokens.peek() {
 			Some(token) if expected_types.contains(&token.token_type) => Ok(self.tokens.next().unwrap()),
@@ -55,24 +63,20 @@ impl Parser {
 		self.expect_any(expected_symbols.iter().map(|&symbol| TokenType::Symbol(symbol)).collect())	
 	}
 
-	pub fn optional(&mut self, optional_token: TokenType) -> bool {
+	pub fn optional(&mut self, optional_token: TokenType) -> Option<Token> {
 		match self.tokens.peek() {
-			Some(token) if token.token_type == optional_token => {
-				self.tokens.next();
-				true
-			}
-			_ => false
+			Some(token) if token.token_type == optional_token => self.tokens.next(),
+			_ => None
 		}
 	}
 
-	// pub fn optional_symbol(&mut self, optional_symbol: Symbol) -> bool {
-	// 	self.optional(TokenType::Symbol(optional_symbol))
-	// }
+	pub fn optional_symbol(&mut self, optional_symbol: Symbol) -> Option<Token> {
+		self.optional(TokenType::Symbol(optional_symbol))
+	}
 
-	pub fn optional_eol(&mut self) -> bool {
-		match self.tokens.peek() {
-			Some(token) if token.token_type == TokenType::Symbol(Symbol::CloseBracket) => true,
-			_ => self.optional(TokenType::EOL),
-		}
+	pub fn optional_eol(&mut self) -> Option<Token> {
+		if let token @ Some(_) = self.optional_symbol(Symbol::SemiColon) { return token }
+		if let token @ Some(_) = self.optional(TokenType::EOL) { return token }
+		None
 	} 
 }

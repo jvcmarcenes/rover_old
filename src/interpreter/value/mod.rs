@@ -9,19 +9,19 @@ use crate::{SourcePos, Error};
 use self::{function::*, component::*};
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Value {
+pub enum ValueData {
 	Void,
 	Str(String),
 	Num(f32),
 	Bool(bool),
-	List(Vec<ValueObject>),
-	Map(HashMap<String, ValueObject>),
+	List(Vec<Value>),
+	Map(HashMap<String, Value>),
 	Function(Function),
 }
 
-impl Into<ValueObject> for Value {
-	fn into(self) -> ValueObject {
-		ValueObject {
+impl Into<Value> for ValueData {
+	fn into(self) -> Value {
+		Value {
 			value: self,
 			components: Vec::new()
 		}
@@ -29,59 +29,59 @@ impl Into<ValueObject> for Value {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ValueObject {
-	pub value: Value,
+pub struct Value {
+	pub value: ValueData,
 	components: Vec<Component>,
 }
 
-impl ValueObject {
-	pub fn new(value: Value) -> Self { Self { value, components: Vec::new() } }
+impl Value {
+	pub fn new(value: ValueData) -> Self { Self { value, components: Vec::new() } }
 
 	pub fn to_bool(&self, pos: SourcePos) -> crate::Result<bool> {
-		if let Value::Bool(b) = self.value { Ok(b) }
+		if let ValueData::Bool(b) = self.value { Ok(b) }
 		else { Error::create("Expected a boolean value".to_string(), pos) }
 	}
 
 	pub fn to_num(&self, pos: SourcePos) -> crate::Result<f32> {
-		if let Value::Num(n) = self.value { Ok(n) }
+		if let ValueData::Num(n) = self.value { Ok(n) }
 		else { Error::create("Expected a numeric value".to_string(), pos) }
 	}
 
 	pub fn to_list(&self, pos: SourcePos) -> crate::Result<Vec<Self>> {
-		if let Value::List(list) = self.value.clone() { Ok(list) }
+		if let ValueData::List(list) = self.value.clone() { Ok(list) }
 		else { Error::create("Expected a list".to_string(), pos) }
 	}
 
-	pub fn to_map(&self, pos: SourcePos) -> crate::Result<HashMap<String, ValueObject>> {
-		if let Value::Map(table) = self.value.clone() { Ok(table) }
+	pub fn to_map(&self, pos: SourcePos) -> crate::Result<HashMap<String, Value>> {
+		if let ValueData::Map(table) = self.value.clone() { Ok(table) }
 		else { Error::create("Expected a map".to_string(), pos) }
 	}
 
-	pub fn math_op(f: fn(f32, f32) -> f32, lhs: &Self, rhs: &Self) -> Result<ValueObject, String> {
-		if let (Value::Num(ln), Value::Num(rn)) = (lhs.value.clone(), rhs.value.clone()) {
-			Ok(Value::Num(f(ln, rn)).into())
+	pub fn math_op(f: fn(f32, f32) -> f32, lhs: &Self, rhs: &Self) -> Result<Value, String> {
+		if let (ValueData::Num(ln), ValueData::Num(rn)) = (lhs.value.clone(), rhs.value.clone()) {
+			Ok(ValueData::Num(f(ln, rn)).into())
 		} else {
 			Err("Invalid operator for types".to_string())
 		}
 	}
 	
-	pub fn bool_op(f: fn(bool, bool) -> bool, lhs: Self, rhs: Self) -> Result<ValueObject, String> {
-		if let (Value::Bool(lb), Value::Bool(rb)) = (lhs.value, rhs.value) {
-			Ok(Value::Bool(f(lb, rb)).into())
+	pub fn bool_op(f: fn(bool, bool) -> bool, lhs: Self, rhs: Self) -> Result<Value, String> {
+		if let (ValueData::Bool(lb), ValueData::Bool(rb)) = (lhs.value, rhs.value) {
+			Ok(ValueData::Bool(f(lb, rb)).into())
 		} else {
 			Err("Invalid operator for types".to_string())
 		}
 	}
 }
 
-impl Display for ValueObject {
+impl Display for Value {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self.value.clone() {
-			Value::Void => write!(f, ""),
-			Value::Str(s) => write!(f, "{}", s),
-			Value::Num(n) => write!(f, "{}", n),
-			Value::Bool(b) => write!(f, "{}", b),
-			Value::List(list) => {
+			ValueData::Void => write!(f, ""),
+			ValueData::Str(s) => write!(f, "{}", s),
+			ValueData::Num(n) => write!(f, "{}", n),
+			ValueData::Bool(b) => write!(f, "{}", b),
+			ValueData::List(list) => {
 				write!(f, "[")?;
 				let mut i = 0;
 				loop {
@@ -93,11 +93,11 @@ impl Display for ValueObject {
 				write!(f, "]")?;
 				Ok(())
 			},
-			Value::Map(map) => {
-				fn print_map(level: &str, map: &HashMap<String, ValueObject>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+			ValueData::Map(map) => {
+				fn print_map(level: &str, map: &HashMap<String, Value>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 					write!(f, "{{\n")?;
 					for (key, value_obj) in map.iter() {
-						if let Value::Map(in_map) = value_obj.value.clone() {
+						if let ValueData::Map(in_map) = value_obj.value.clone() {
 							write!(f, "  {}{} = ", level, key)?;
 							print_map(&format!("  {}", level), &in_map, f)?;
 						} else {
@@ -109,58 +109,58 @@ impl Display for ValueObject {
 				}
 				print_map("", &map, f)
 			},
-			Value::Function(_) => panic!("Can't write out a function")
+			ValueData::Function(_) => panic!("Can't write out a function")
 		}
 	}
 }
 
-impl Add for ValueObject {
+impl Add for Value {
 	type Output = Result<Self, String>;
 
 	fn add(self, rhs: Self) -> Self::Output {
 		match (self.value.clone(), rhs.value.clone()) {
-			(Value::List(list), _) => {
+			(ValueData::List(list), _) => {
 				let mut res = list.clone();
 				res.push(rhs);
-				Ok(ValueObject::new(Value::List(res)))
+				Ok(Value::new(ValueData::List(res)))
 			}
-			(Value::Str(_), _) | (_, Value::Str(_)) => Ok(ValueObject::new(Value::Str(format!("{}{}", self, rhs)))),
-			(Value::Num(_), Value::Num(_)) => Self::math_op(|a, b| a + b, &self, &rhs),
+			(ValueData::Str(_), _) | (_, ValueData::Str(_)) => Ok(Value::new(ValueData::Str(format!("{}{}", self, rhs)))),
+			(ValueData::Num(_), ValueData::Num(_)) => Self::math_op(|a, b| a + b, &self, &rhs),
 			_ => Err("Invalid operator for type".to_string()),
 		}
 	}
 }
 
-impl Sub for ValueObject {
+impl Sub for Value {
 	type Output = Result<Self, String>;
 
 	fn sub(self, rhs: Self) -> Self::Output { Self::math_op(|a, b| a - b, &self, &rhs) }
 }
 
-impl Mul for ValueObject {
+impl Mul for Value {
 	type Output = Result<Self, String>;
 
 	fn mul(self, rhs: Self) -> Self::Output { Self::math_op(|a, b| a * b, &self, &rhs) }
 }
 
-impl Div for ValueObject {
-	type Output = Result<ValueObject, String>;
+impl Div for Value {
+	type Output = Result<Value, String>;
 
 	fn div(self, rhs: Self) -> Self::Output { Self::math_op(|a, b| a / b, &self, &rhs) }
 }
 
-impl Rem for ValueObject {
-	type Output = Result<ValueObject, String>;
+impl Rem for Value {
+	type Output = Result<Value, String>;
 
 	fn rem(self, rhs: Self) -> Self::Output { Self::math_op(|a, b| a % b, &self, &rhs) }
 }
 
-impl PartialOrd for ValueObject {
+impl PartialOrd for Value {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		match (self.value.clone(), other.value.clone()) {
-			(Value::Str(l0), Value::Str(r0)) => l0.partial_cmp(&r0),
-			(Value::Num(l0), Value::Num(r0)) => l0.partial_cmp(&r0),
-			(Value::Bool(l0), Value::Bool(r0)) => l0.partial_cmp(&r0),
+			(ValueData::Str(l0), ValueData::Str(r0)) => l0.partial_cmp(&r0),
+			(ValueData::Num(l0), ValueData::Num(r0)) => l0.partial_cmp(&r0),
+			(ValueData::Bool(l0), ValueData::Bool(r0)) => l0.partial_cmp(&r0),
 			_ => None,
 		}
 	}

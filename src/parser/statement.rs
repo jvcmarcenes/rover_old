@@ -11,6 +11,7 @@ pub enum AssignmentOperator {
 pub enum StatementType {
 	Write { expr: Box<Expression> },
 	Writeline { expr: Box<Expression> },
+	Declaration { id: String, expr: Box<Expression> },
 	Assignment { op: AssignmentOperator, path: Box<Expression>, expr: Box<Expression> },
 	If { condition: Box<Expression>, then_block: Block, else_block: Block },
 	Loop { block: Block }, Break, Continue,
@@ -48,6 +49,7 @@ impl Parser {
 				TokenType::Keyword(keyword) => match keyword {
 					Keyword::Write => self.parse_write_statement()?,
 					Keyword::Writeline => self.parse_writeline_statement()?,
+					Keyword::Let => self.parse_declaration_statement()?,
 					Keyword::If => self.parse_if_statement()?,
 					Keyword::Loop => self.parse_loop_statement()?,
 					Keyword::Break => if self.in_loop {
@@ -88,6 +90,20 @@ impl Parser {
 		let expr = self.parse_expression_or_void()?;
 		self.expect_eol()?;
 		Statement::create(StatementType::Writeline { expr: Box::new(expr) }, pos)
+	}
+
+	fn parse_declaration_statement(&mut self) -> Result<Statement> {
+		let Token { token_type: _, pos } = self.tokens.next().unwrap();
+		let name = match self.tokens.next() {
+			Some(Token { token_type: TokenType::Identifier(name), pos: _ }) => name,
+			_ => return Error::create("Expected identifier".to_string(), pos),
+		};
+		let expr = if let Some(_) = self.optional_symbol(Symbol::Equals) {
+			self.parse_expression()?
+		} else { 
+			Expression::new(ExpressionType::ValueLiteral { value: expression::Literal::Void }, pos)
+		};
+		Statement::create(StatementType::Declaration { id: name, expr: Box::new(expr) }, pos)
 	}
 
 	fn parse_assigment_statement(&mut self, path: Box<Expression>) -> Result<Statement> {

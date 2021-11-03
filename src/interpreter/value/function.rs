@@ -23,15 +23,15 @@ impl Function {
 	}
 }
 
-impl Into<ValueObject> for Function {
-	fn into(self) -> ValueObject {
-		ValueObject::new(Value::Function(self))
+impl Into<Value> for Function {
+	fn into(self) -> Value {
+		Value::new(ValueData::Function(self))
 	}
 }
 
-impl ValueObject {
+impl Value {
 	pub fn to_function(&mut self, pos: SourcePos) -> Result<Function> {
-		if let Value::Function(f) = self.value.clone() { Ok(f.to_owned()) }
+		if let ValueData::Function(f) = self.value.clone() { Ok(f.to_owned()) }
 		else { Error::create("Expected a function".to_string(), pos) }
 	}
 }
