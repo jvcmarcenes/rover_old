@@ -74,7 +74,7 @@ fn get_un_op_for_symbol(s: &Symbol) -> Option<UnaryOperator> {
 pub enum Literal {
 	Void,
 	Str(String),
-	Num(f32),
+	Num(f64),
 	Bool(bool),
 }
 

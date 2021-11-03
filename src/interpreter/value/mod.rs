@@ -12,7 +12,7 @@ use self::{function::*, component::*};
 pub enum ValueData {
 	Void,
 	Str(String),
-	Num(f32),
+	Num(f64),
 	Bool(bool),
 	List(Vec<Value>),
 	Map(HashMap<String, Value>),
@@ -42,7 +42,7 @@ impl Value {
 		else { Error::create("Expected a boolean value".to_string(), pos) }
 	}
 
-	pub fn to_num(&self, pos: SourcePos) -> crate::Result<f32> {
+	pub fn to_num(&self, pos: SourcePos) -> crate::Result<f64> {
 		if let ValueData::Num(n) = self.value { Ok(n) }
 		else { Error::create("Expected a numeric value".to_string(), pos) }
 	}
@@ -57,7 +57,7 @@ impl Value {
 		else { Error::create("Expected a map".to_string(), pos) }
 	}
 
-	pub fn math_op(f: fn(f32, f32) -> f32, lhs: &Self, rhs: &Self) -> Result<Value, String> {
+	pub fn math_op(f: fn(f64, f64) -> f64, lhs: &Self, rhs: &Self) -> Result<Value, String> {
 		if let (ValueData::Num(ln), ValueData::Num(rn)) = (lhs.value.clone(), rhs.value.clone()) {
 			Ok(ValueData::Num(f(ln, rn)).into())
 		} else {

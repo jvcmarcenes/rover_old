@@ -4,7 +4,7 @@ use crate::SourcePos;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
-	Num(f32),
+	Num(f64),
 	Str(String),
 	Bool(bool),
 }

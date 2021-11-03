@@ -1,1 +1,26 @@
 
+let users = []
+
+let add_user = function name age {
+	users += {
+		id = random
+		name = name
+		age = age
+	}
+}
+
+let print_users = function {
+	let i = 0
+	loop {
+		if i >= users.size { break }
+		let user = users[i]
+		writeline 'user: #{user.id}, name: #{user.name}, age: #{user.age}'
+		i += 1
+	}
+}
+
+add_user! 'John' 23
+add_user! 'Ana' 19
+add_user! 'Mike' 27
+
+print_users!

@@ -101,7 +101,7 @@ impl Iterator for Lexer {
 		} else if first_char.is_numeric() {
 			let mut value = first_char.to_string();
 			self.get_next_char_while(&mut value, |c| c.is_numeric() || c == '.');
-			token = match value.parse::<f32>() {
+			token = match value.parse::<f64>() {
 				Ok(n) => Token::create(TokenType::Literal(Literal::Num(n)), pos),
 				Err(_) => Error::create(format!("Numeral literal {} is invalid", value), pos),
 			}

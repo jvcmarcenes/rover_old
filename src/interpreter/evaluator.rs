@@ -36,7 +36,7 @@ impl Interpreter {
 		}
 	}
 
-	pub fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f32> { self.evaluate(expr)?.to_num(expr.pos) }
+	pub fn evaluate_to_num(&mut self, expr: &Box<Expression>) -> Result<f64> { self.evaluate(expr)?.to_num(expr.pos) }
 	pub fn evaluate_to_list(&mut self, expr: &Box<Expression>) -> Result<Vec<Value>> { self.evaluate(expr)?.to_list(expr.pos) }
 	pub fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, Value>> { self.evaluate(expr)?.to_map(expr.pos) }
 	pub fn evaluate_to_function(&mut self, expr: &Box<Expression>) -> Result<Function> { self.evaluate(expr)?.to_function(expr.pos) }
@@ -75,7 +75,7 @@ impl Interpreter {
 					ValueData::Str(s) => s.chars().into_iter().map(|c| ValueData::Str(c.to_string()).into()).collect(),
 					_ => return Error::create(format!("Cannot index {}", head_obj), head_expr.pos),
 				};
-				if index < 0.0 { index += head.len() as f32; }
+				if index < 0.0 { index += head.len() as f64; }
 				if index < 0.0 || index as usize >= head.len() {
 					Error::create("Index out of bounds".to_string(), index_expr.pos)
 				} else {
@@ -102,13 +102,13 @@ impl Interpreter {
 		let res = match head.value {
 			ValueData::List(list) => {
 				match prop {
-					"size" => ValueData::Num(list.len() as f32).into(),
+					"size" => ValueData::Num(list.len() as f64).into(),
 					_ => return err,
 				}
 			}
 			ValueData::Str(s) => {
 				match prop {
-					"size" => ValueData::Num(s.len() as f32).into(),
+					"size" => ValueData::Num(s.len() as f64).into(),
 					"num" => match s.parse() {
 						Ok(n) => Function::return_static(Literal::Num(n), pos).into(),
 						Err(_) => return Error::create("Could not cast string to num".to_string(), pos)
@@ -221,7 +221,7 @@ impl Interpreter {
 	}
 
 	fn evaluate_readnum(&mut self, pos: SourcePos) -> Result<Value> {
-		let num_res: std::result::Result<f32, text_io::Error> = try_read!(); // I believe this won't work on other platforms
+		let num_res: std::result::Result<f64, text_io::Error> = try_read!(); // I believe this won't work on other platforms
 		match num_res {
 			Ok(num) => Ok(ValueData::Num(num).into()),
 			Err(_) => Error::create("Invalid console input, expected a number".to_string(), pos),
