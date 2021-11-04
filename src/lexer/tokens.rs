@@ -83,7 +83,7 @@ pub enum Keyword {
 	If, Else,
 	Loop, Break, Continue,
 	Function, Return,
-	Let,
+	Let, _Self,
 }
 
 impl Keyword {
@@ -104,6 +104,7 @@ impl Keyword {
 			"return"    => Keyword::Return,
 			"random"    => Keyword::Random,
 			"let"       => Keyword::Let,
+			"self"      => Keyword::_Self,
 			_ => return None,
 		};
 		Some(keyword)

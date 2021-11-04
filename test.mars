@@ -1,15 +1,11 @@
 
+writeline "What's your name?"
+
+let name = read
+
 let person = {
-	name = 'John'
+	name,
 	age = 23
-	get_older = function(self) {
-		self.age += 1
-	}
 }
-
-writeline person
-
-person.get_older()
-person.get_older()
 
 writeline person

@@ -302,9 +302,12 @@ impl Parser {
 				}
 				Some(token) if table.len() == 0 => {
 					if let TokenType::Identifier(name) = token.clone().token_type {
-						self.tokens.next();
-						self.expect_symbol(Symbol::Equals)?;
-						let expr = self.parse_expression()?;
+						let token = self.tokens.next().unwrap();
+						let expr = if self.optional_symbol(Symbol::Equals).is_some() {
+							self.parse_expression()?
+						} else {
+							Expression::new(ExpressionType::VariableReference { name: name.clone() }, token.pos)
+						};
 						table.insert(name, expr);
 					} else { return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos) }
 				}
@@ -315,9 +318,12 @@ impl Parser {
 						match token.token_type.clone() {
 							TokenType::Symbol(Symbol::CloseBracket) => continue,
 							TokenType::Identifier(name) => {
-								self.tokens.next();
-								self.expect_symbol(Symbol::Equals)?;
-								let expr = self.parse_expression()?;
+								let token = self.tokens.next().unwrap();
+								let expr = if self.optional_symbol(Symbol::Equals).is_some() {
+									self.parse_expression()?
+								} else {
+									Expression::new(ExpressionType::VariableReference { name: name.clone() }, token.pos)
+								};
 								table.insert(name, expr);
 							}
 							_ => return Error::create(format!("Expected identifier, found {:?}", token.token_type), token.pos),
