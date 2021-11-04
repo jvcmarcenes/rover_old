@@ -31,7 +31,7 @@ impl Into<Value> for Function {
 
 impl Value {
 	pub fn to_function(&mut self, pos: SourcePos) -> Result<Function> {
-		if let ValueData::Function(f) = self.value.clone() { Ok(f.to_owned()) }
+		if let ValueData::Function(f) = self.data.clone() { Ok(f.to_owned()) }
 		else { Error::create("Expected a function".to_string(), pos) }
 	}
 }

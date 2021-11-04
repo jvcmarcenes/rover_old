@@ -41,7 +41,7 @@ impl Interpreter {
 	pub fn evaluate_to_map(&mut self, expr: &Box<Expression>) -> Result<HashMap<String, Value>> { self.evaluate(expr)?.to_map(expr.pos) }
 	pub fn evaluate_to_function(&mut self, expr: &Box<Expression>) -> Result<Function> { self.evaluate(expr)?.to_function(expr.pos) }
 	pub fn evaluate_to_str(&mut self, expr: &Box<Expression>) -> Result<String> { 
-		match self.evaluate(expr)?.value { 
+		match self.evaluate(expr)?.data { 
 			ValueData::Str(s) => Ok(s),
 			_ => Error::create("Expected a string value".to_string(), expr.pos)
 		}
@@ -66,11 +66,11 @@ impl Interpreter {
 
 	fn evaluate_index_access(&mut self, head_expr: &Box<Expression>, index_expr: &Box<Expression>) -> Result<Value> {
 		let acc = self.evaluate(index_expr)?;
-		match acc.value {
+		match acc.data {
 			ValueData::Str(prop) => self.evaluate_property_access(head_expr, &prop),
 			ValueData::Num(mut index) => {
 				let head_obj = self.evaluate(head_expr)?;
-				let head = match head_obj.value {
+				let head = match head_obj.data {
 					ValueData::List(list) => list,
 					ValueData::Str(s) => s.chars().into_iter().map(|c| ValueData::Str(c.to_string()).into()).collect(),
 					_ => return Error::create(format!("Cannot index {}", head_obj), head_expr.pos),
@@ -99,7 +99,8 @@ impl Interpreter {
 		let pos = head_expr.pos;
 
 		let head = self.evaluate(head_expr)?;
-		let res = match head.value {
+
+		let res = match head.data {
 			ValueData::List(list) => {
 				match prop {
 					"size" => ValueData::Num(list.len() as f64).into(),
@@ -155,14 +156,27 @@ impl Interpreter {
 
 	pub fn evaluate_function_call(&mut self, head_expr: &Box<Expression>, args_expr: Vec<Expression>) -> Result<Value> {
 		let head = self.evaluate_to_function(head_expr)?;
-
-		if head.params.len() != args_expr.len() {
-			return Error::create(format!("Expected {} arguments, received {}", head.params.len(), args_expr.len()), head_expr.pos);
-		}
+		let mut params = head.params.clone();
 
 		let mut symbol_table: HashMap<String, Value> = HashMap::new();
 
-		for (key, expr) in head.params.iter().zip(args_expr.iter()) {
+		if params.contains(&String::from("self")) {
+			match head_expr.expr_type.clone() {
+				ExpressionType::PropertyAccess { head_expr, prop: _ } => {
+					let _self = self.evaluate(&head_expr)?;
+					symbol_table.insert("self".to_string(), _self);
+					let id = params.binary_search(&String::from("self")).unwrap();
+					params.remove(id);
+				}
+				_ => return Error::create("Self functions are only allowed in maps".to_string(), head_expr.pos),
+			}
+		}
+
+		if params.len() != args_expr.len() {
+			return Error::create(format!("Expected {} arguments, received {}", params.len(), args_expr.len()), head_expr.pos);
+		}
+
+		for (key, expr) in params.iter().zip(args_expr.iter()) {
 			let value = self.evaluate(&Box::new(expr.clone()))?;
 			symbol_table.insert(key.clone(), value);
 		}
@@ -181,11 +195,11 @@ impl Interpreter {
 		let val = self.evaluate(expr)?;
 		match op {
 			UnaryOperator::NumNegation => {
-				if let ValueData::Num(n) = val.value.clone() { Ok(ValueData::Num(-n).into()) }
+				if let ValueData::Num(n) = val.data.clone() { Ok(ValueData::Num(-n).into()) }
 				else { Error::create("Invalid operator for type".to_string(), expr.pos) }
 			},
 			UnaryOperator::BoolNegation => {
-				if let ValueData::Bool(b) = val.value.clone() { Ok(ValueData::Bool(!b).into()) }
+				if let ValueData::Bool(b) = val.data.clone() { Ok(ValueData::Bool(!b).into()) }
 				else { Error::create("Invalid operator for type".to_string(), expr.pos) }
 			}
 		}

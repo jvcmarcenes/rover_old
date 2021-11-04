@@ -76,7 +76,7 @@ impl Interpreter {
 				ExpressionType::IndexAccess { head_expr, index_expr } => {
 					head = head_expr.clone();
 					let root = self.evaluate(&head_expr)?;
-					match root.value {
+					match root.data {
 						ValueData::List(mut list) => {
 							let index = self.evaluate_to_num(&index_expr)? as usize;
 							list.remove(index);

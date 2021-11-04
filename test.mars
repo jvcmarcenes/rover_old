@@ -1,30 +1,15 @@
 
-let iter = function(arr, f) {
-	let i = 0
-	loop {
-		if i >= arr.size { break }
-		f(arr[i])
-		i += 1
+let person = {
+	name = 'John'
+	age = 23
+	get_older = function(self) {
+		self.age += 1
 	}
 }
 
-let map = function(arr, f) {
-	let i = 0
-	let ret = []
-	loop {
-		if i >= arr.size { return ret }
-		ret += f(arr[i])
-		i += 1
-	}
-}
+writeline person
 
-let print_arr = function(arr) {
-	iter(arr, function(n) { write '#{n}, ' })
-	writeline
-}
+person.get_older()
+person.get_older()
 
-let list = [0, 1, 2, 3, 4, 5]
-let doubled = map(list, function(n) { return n * 2 })
-
-print_arr(list)
-print_arr(doubled)
+writeline person
